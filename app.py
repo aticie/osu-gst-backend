@@ -1,8 +1,11 @@
 import os
+from typing import Optional, Union
 
 import aiohttp
+import jwt
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
+from starlette.responses import RedirectResponse
 
 from dbsql import crud, models, schemas
 from dbsql.database import SessionLocal, engine
@@ -21,8 +24,15 @@ def get_db():
         db.close()
 
 
-@app.get("/osu-identify")
-async def osu_identify(code: str):
+@app.get("/osu-identify", response_class=RedirectResponse)
+async def osu_identify(code: str, state: Optional[str] = None) -> Union[RedirectResponse, HTTPException]:
+    try:
+        state_dict = jwt.decode(state, os.getenv("JWT_KEY"), algorithms="HS256")
+        redirect_to = state_dict["redirect_to"]
+        response = RedirectResponse(url=redirect_to)
+    except Exception as e:
+        return HTTPException(500, f"Something went wrong, show this to the developers.\n{e}")
+
     token_body = {
         "code": code,
         "client_id": os.getenv("OSU_CLIENT_ID"),
@@ -41,12 +51,21 @@ async def osu_identify(code: str):
         headers = {"Authorization": f"Bearer {access_token}"}
         async with sess.get(r"https://osu.ppy.sh/api/v2/me", headers=headers) as resp:
             me_result = await resp.json()
+            for k, v in me_result.items():
+                response.set_cookie(key=f"osu_{k}", value=v)
 
-    return me_result
+    return response
 
 
 @app.get("/discord-identify")
-async def discord_identify(code: str):
+async def discord_identify(code: str, state: Optional[str] = None):
+    try:
+        state_dict = jwt.decode(state, os.getenv("JWT_KEY"), algorithms="HS256")
+        redirect_to = state_dict["redirect_to"]
+        response = RedirectResponse(url=redirect_to)
+    except Exception as e:
+        return HTTPException(500, f"Something went wrong, show this to the developers.\n{e}")
+
     token_body = {
         "code": code,
         "client_id": os.getenv("DISCORD_CLIENT_ID"),
@@ -65,8 +84,10 @@ async def discord_identify(code: str):
         headers = {"Authorization": f"Bearer {access_token}"}
         async with sess.get(r"https://discord.com/api/v10/users/@me", headers=headers) as resp:
             me_result = await resp.json()
+            for k, v in me_result.items():
+                response.set_cookie(key=f"discord_{k}", value=v)
 
-    return me_result
+    return response
 
 
 @app.post("/full-register/", response_model=schemas.User)
