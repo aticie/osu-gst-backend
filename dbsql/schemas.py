@@ -1,16 +1,16 @@
 from pydantic import BaseModel
 
 
-class ItemBase(BaseModel):
+class TeamBase(BaseModel):
     title: str
-    description: str | None = None
+    avatar_url: str | None = None
 
 
-class ItemCreate(ItemBase):
-    pass
+class TeamCreate(TeamBase):
+    ...
 
 
-class Item(ItemBase):
+class Team(TeamBase):
     id: int
     owner_id: int
 
@@ -19,17 +19,31 @@ class Item(ItemBase):
 
 
 class UserBase(BaseModel):
-    email: str
+    osu_id: int
+    osu_username: str
+    osu_avatar_url: str
+    osu_global_rank: int
+
+
+class PartialUser(UserBase):
+    ...
+
+    class Config:
+        orm_mode = True
+
+
+class PartialUserCreate(PartialUser):
+    ...
 
 
 class UserCreate(UserBase):
-    password: str
+    discord_id: str
 
 
-class User(UserBase):
-    id: int
-    is_active: bool
-    items: list[Item] = []
+class User(PartialUser):
+    id: str
+    discord_id: str
+    team: Team | None = None
 
     class Config:
         orm_mode = True
