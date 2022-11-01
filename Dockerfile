@@ -23,3 +23,5 @@ ENV PATH="/opt/venv/bin:$PATH" \
 WORKDIR /app
 
 COPY . /app
+
+CMD ["python", "main.py"]
