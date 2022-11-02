@@ -18,6 +18,7 @@ class User(Base):
     discord_tag = Column(String)
     discord_linked = Column(Boolean, default=False)
     osu_linked = Column(Boolean, default=False)
+    team_id = Column(Integer, ForeignKey("teams.id"))
 
     team = relationship("Team", back_populates="owner")
 
@@ -28,6 +29,5 @@ class Team(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     avatar_url = Column(String, index=True)
-    owner_id = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("User", back_populates="team")

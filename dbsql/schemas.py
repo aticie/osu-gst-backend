@@ -38,9 +38,9 @@ class OsuUserCreate(OsuUser):
 
 
 class DiscordUser(UserBase):
-    discord_id: str
-    discord_avatar_url: str
-    discord_tag: str
+    discord_id: str | None
+    discord_avatar_url: str | None
+    discord_tag: str | None
 
 
 class UserCreate(OsuUser, DiscordUser):

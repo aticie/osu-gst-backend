@@ -12,6 +12,8 @@ from dbsql import crud, models, schemas
 from dbsql.database import SessionLocal, engine
 from dbsql.schemas import OsuUserCreate, DiscordUser
 
+ONE_MONTH = 2592000
+
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -78,6 +80,13 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[Redire
     hash_secret = os.getenv("SECRET")
     user_hash = hashlib.md5(f"{osu_id}+{hash_secret}".encode()).hexdigest()
 
+    redirect = RedirectResponse(os.getenv("FRONTEND_HOMEPAGE"))
+    redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH)
+
+    db_user = crud.get_user(db=db, user_hash=user_hash)
+    if db_user:
+        return redirect
+
     user = OsuUserCreate(osu_id=osu_id,
                          osu_username=me_result["username"],
                          osu_avatar_url=me_result["avatar_url"],
@@ -85,8 +94,6 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[Redire
                          user_hash=user_hash)
     crud.create_osu_user(db=db, user=user)
 
-    redirect = RedirectResponse(os.getenv("FRONTEND_HOMEPAGE"))
-    redirect.set_cookie(key="user_hash", value=user_hash, max_age=2592000)
     return redirect
 
 
@@ -112,7 +119,7 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
     crud.upgrade_to_discord_user(db=db, user_hash=user_hash, user=user)
 
     redirect = RedirectResponse(os.getenv("FRONTEND_HOMEPAGE"))
-    redirect.set_cookie(key="user", value=user_hash, max_age=2592000)
+    redirect.set_cookie(key="user", value=user_hash, max_age=ONE_MONTH)
     return redirect
 
 
@@ -124,7 +131,7 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return crud.create_osu_user(db=db, user=user)
 
 
-@app.get("/users/me", response_model=list[schemas.User])
+@app.get("/users/me", response_model=schemas.User)
 async def read_users(db: Session = Depends(get_db),
                      user_hash: str | None = Cookie(default=None)):
     user = crud.get_user(db, user_hash)
