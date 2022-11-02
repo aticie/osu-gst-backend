@@ -26,7 +26,7 @@ class OsuUser(UserBase):
     osu_id: int
     osu_username: str
     osu_avatar_url: str
-    osu_global_rank: int
+    osu_global_rank: int | None = None
 
     class Config:
         orm_mode = True
