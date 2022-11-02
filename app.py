@@ -4,6 +4,7 @@ from typing import Union
 
 import aiohttp
 from fastapi import Depends, FastAPI, HTTPException, Cookie
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
@@ -14,7 +15,18 @@ from dbsql.schemas import OsuUserCreate, DiscordUser
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+if os.getenv("DEV"):
+    origins = [
+        "http://localhost:5173"
+    ]
 
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"]
+    )
 
 # Dependency
 def get_db():
