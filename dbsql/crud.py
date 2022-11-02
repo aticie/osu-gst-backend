@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 
 
-def get_user(db: Session, user_id: int):
-    return db.query(models.User).filter(models.User.id == user_id).first()
+def get_user(db: Session, user_hash: str):
+    return db.query(models.User).filter(models.User.user_hash == user_hash).first()
 
 
 def get_user_by_osu_id(db: Session, osu_id: int):
@@ -19,13 +19,27 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-def create_user(db: Session, user: schemas.UserCreate):
-    db_user = models.User(**user.dict())
+def create_osu_user(db: Session, user: schemas.OsuUserCreate):
+    db_user = models.User(**user.dict(), osu_linked=True)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
 
+
+def upgrade_to_discord_user(db: Session, user_hash: str, user: schemas.DiscordUser):
+    db_user: models.User = db.\
+        query(models.User).\
+        filter(models.User.user_hash == user_hash).\
+        first()
+
+    db_user.discord_id = user.discord_id
+    db_user.discord_tag = user.discord_tag
+    db_user.discord_avatar_url = user.discord_avatar_url
+    db_user.discord_linked = True
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 def get_teams(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Team).offset(skip).limit(limit).all()

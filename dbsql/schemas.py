@@ -19,30 +19,35 @@ class Team(TeamBase):
 
 
 class UserBase(BaseModel):
+    ...
+
+
+class OsuUser(UserBase):
     osu_id: int
     osu_username: str
     osu_avatar_url: str
     osu_global_rank: int
 
-
-class PartialUser(UserBase):
-    ...
-
     class Config:
         orm_mode = True
 
 
-class PartialUserCreate(PartialUser):
+class OsuUserCreate(OsuUser):
+    user_hash: str
     ...
 
 
-class UserCreate(UserBase):
+class DiscordUser(UserBase):
     discord_id: str
+    discord_avatar_url: str
+    discord_tag: str
 
 
-class User(PartialUser):
-    id: str
-    discord_id: str
+class UserCreate(OsuUser, DiscordUser):
+    ...
+
+
+class User(UserCreate):
     team: Team | None = None
 
     class Config:

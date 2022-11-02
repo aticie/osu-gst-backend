@@ -1,14 +1,15 @@
+import hashlib
 import os
-from typing import Optional, Union
+from typing import Union
 
 import aiohttp
-import jwt
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Cookie
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
 from dbsql import crud, models, schemas
 from dbsql.database import SessionLocal, engine
+from dbsql.schemas import OsuUserCreate, DiscordUser
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -24,70 +25,83 @@ def get_db():
         db.close()
 
 
-@app.get("/osu-identify", response_class=RedirectResponse)
-async def osu_identify(code: str, state: Optional[str] = None) -> Union[RedirectResponse, HTTPException]:
-    try:
-        state_dict = jwt.decode(state, os.getenv("JWT_KEY"), algorithms="HS256")
-        redirect_to = state_dict["redirect_to"]
-        response = RedirectResponse(url=redirect_to)
-    except Exception as e:
-        return HTTPException(500, f"Something went wrong, show this to the developers.\n{e}")
-
+async def oauth2_authorization(code: str,
+                               client_id: str,
+                               client_secret: str,
+                               redirect_uri: str,
+                               token_endpoint: str,
+                               me_endpoint: str):
     token_body = {
         "code": code,
-        "client_id": os.getenv("OSU_CLIENT_ID"),
-        "client_secret": os.getenv("OSU_CLIENT_SECRET"),
+        "client_id": client_id,
+        "client_secret": client_secret,
         "grant_type": "authorization_code",
-        "redirect_uri": os.getenv("REDIRECT_URI") + "/osu-identify"
+        "redirect_uri": redirect_uri
     }
     async with aiohttp.ClientSession() as sess:
-        async with sess.post(r"https://osu.ppy.sh/oauth/token", json=token_body) as resp:
+        async with sess.post(token_endpoint, data=token_body) as resp:
             contents = await resp.json()
 
         access_token = contents.get("access_token")
         if not access_token:
-            return HTTPException(500, "Something went wrong with the authentication...")
+            return HTTPException(500,
+                                 {"Status": "Something went wrong with the authentication, didn't get access token..."})
 
         headers = {"Authorization": f"Bearer {access_token}"}
-        async with sess.get(r"https://osu.ppy.sh/api/v2/me", headers=headers) as resp:
+        async with sess.get(me_endpoint, headers=headers) as resp:
             me_result = await resp.json()
-            for k, v in me_result.items():
-                response.set_cookie(key=f"osu_{k}", value=v)
 
-    return response
+    return me_result
+
+
+@app.get("/osu-identify", response_class=RedirectResponse)
+async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[RedirectResponse, HTTPException]:
+    me_result = await oauth2_authorization(code=code,
+                                           client_id=os.getenv("OSU_CLIENT_ID"),
+                                           client_secret=os.getenv("OSU_CLIENT_SECRET"),
+                                           redirect_uri=os.getenv("REDIRECT_URI") + "/osu-identify",
+                                           token_endpoint=r"https://osu.ppy.sh/oauth/token",
+                                           me_endpoint=r"https://osu.ppy.sh/api/v2/me")
+    osu_id = me_result["id"]
+    hash_secret = os.getenv("SECRET")
+    user_hash = hashlib.md5(f"{osu_id}+{hash_secret}".encode()).hexdigest()
+
+    user = OsuUserCreate(osu_id=osu_id,
+                         osu_username=me_result["username"],
+                         osu_avatar_url=me_result["avatar_url"],
+                         osu_global_rank=me_result["statistics"]["global_rank"],
+                         user_hash=user_hash)
+    crud.create_osu_user(db=db, user=user)
+
+    redirect = RedirectResponse(os.getenv("FRONTEND_HOMEPAGE"))
+    redirect.set_cookie(key="user_hash", value=user_hash)
+    return redirect
 
 
 @app.get("/discord-identify")
-async def discord_identify(code: str, state: Optional[str] = None):
-    try:
-        state_dict = jwt.decode(state, os.getenv("JWT_KEY"), algorithms="HS256")
-        redirect_to = state_dict["redirect_to"]
-        response = RedirectResponse(url=redirect_to)
-    except Exception as e:
-        return HTTPException(500, f"Something went wrong, show this to the developers.\n{e}")
+async def discord_identify(code: str, db: Session = Depends(get_db),
+                           user_hash: str | None = Cookie(default=None)):
+    me_result = await oauth2_authorization(code=code,
+                                           client_id=os.getenv("DISCORD_CLIENT_ID"),
+                                           client_secret=os.getenv("DISCORD_CLIENT_SECRET"),
+                                           redirect_uri=os.getenv("REDIRECT_URI") + "/discord-identify",
+                                           token_endpoint=r"https://discord.com/api/oauth2/token",
+                                           me_endpoint=r"https://discord.com/api/v10/users/@me")
 
-    token_body = {
-        "code": code,
-        "client_id": os.getenv("DISCORD_CLIENT_ID"),
-        "client_secret": os.getenv("DISCORD_CLIENT_SECRET"),
-        "grant_type": "authorization_code",
-        "redirect_uri": os.getenv("REDIRECT_URI") + "/discord-identify"
-    }
-    async with aiohttp.ClientSession() as sess:
-        async with sess.post(r"https://discord.com/api/oauth2/token", data=token_body) as resp:
-            contents = await resp.json()
+    id = me_result["id"]
+    username = me_result["username"]
+    discriminator = me_result["discriminator"]
+    avatar_hash = me_result["avatar"]
+    avatar_url = f"https://cdn.discordapp.com/avatars/{id}/{avatar_hash}.png"
+    user = DiscordUser(discord_id=id,
+                       discord_avatar_url=avatar_url,
+                       discord_tag=f"{username}#{discriminator}",
+                       )
+    crud.upgrade_to_discord_user(db=db, user_hash=user_hash, user=user)
 
-        access_token = contents.get("access_token")
-        if not access_token:
-            return HTTPException(500, "Something went wrong with the authentication...")
-
-        headers = {"Authorization": f"Bearer {access_token}"}
-        async with sess.get(r"https://discord.com/api/v10/users/@me", headers=headers) as resp:
-            me_result = await resp.json()
-            for k, v in me_result.items():
-                response.set_cookie(key=f"discord_{k}", value=v)
-
-    return response
+    redirect = RedirectResponse(os.getenv("FRONTEND_HOMEPAGE"))
+    redirect.set_cookie(key="user", value=user_hash)
+    return redirect
 
 
 @app.post("/full-register/", response_model=schemas.User)
@@ -95,28 +109,14 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_discord_id(db, discord_id=user.discord_id)
     if db_user:
         raise HTTPException(status_code=400, detail="User already registered")
-    return crud.create_user(db=db, user=user)
+    return crud.create_osu_user(db=db, user=user)
 
 
-@app.get("/users/", response_model=list[schemas.User])
-async def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    users = crud.get_users(db, skip=skip, limit=limit)
-    return users
-
-
-@app.get("/users/{user_id}", response_model=schemas.User)
-async def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = crud.get_user(db, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
-
-
-@app.post("/users/{user_id}/items/", response_model=schemas.Team)
-async def create_item_for_user(
-        user_id: int, item: schemas.TeamCreate, db: Session = Depends(get_db)
-):
-    return crud.create_user_item(db=db, item=item, user_id=user_id)
+@app.get("/users/me", response_model=list[schemas.User])
+async def read_users(db: Session = Depends(get_db),
+                     user_hash: str | None = Cookie(default=None)):
+    user = crud.get_user(db, user_hash)
+    return user
 
 
 @app.get("/teams/", response_model=list[schemas.Team])
