@@ -74,7 +74,7 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[Redire
     crud.create_osu_user(db=db, user=user)
 
     redirect = RedirectResponse(os.getenv("FRONTEND_HOMEPAGE"))
-    redirect.set_cookie(key="user_hash", value=user_hash)
+    redirect.set_cookie(key="user_hash", value=user_hash, max_age=2592000)
     return redirect
 
 
@@ -100,7 +100,7 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
     crud.upgrade_to_discord_user(db=db, user_hash=user_hash, user=user)
 
     redirect = RedirectResponse(os.getenv("FRONTEND_HOMEPAGE"))
-    redirect.set_cookie(key="user", value=user_hash)
+    redirect.set_cookie(key="user", value=user_hash, max_age=2592000)
     return redirect
 
 
