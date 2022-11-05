@@ -21,7 +21,7 @@ app = FastAPI()
 
 if os.getenv("DEV"):
     origins = [
-        frontend_homepage
+        "*"
     ]
 
     app.add_middleware(
