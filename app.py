@@ -16,10 +16,12 @@ ONE_MONTH = 2592000
 
 models.Base.metadata.create_all(bind=engine)
 
+frontend_homepage = os.getenv("FRONTEND_HOMEPAGE")
 app = FastAPI()
+
 if os.getenv("DEV"):
     origins = [
-        "http://localhost:5173"
+        frontend_homepage
     ]
 
     app.add_middleware(
@@ -80,7 +82,6 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[Redire
     osu_id = me_result["id"]
     hash_secret = os.getenv("SECRET")
     user_hash = hashlib.md5(f"{osu_id}+{hash_secret}".encode()).hexdigest()
-    frontend_homepage = os.getenv("FRONTEND_HOMEPAGE")
     redirect = RedirectResponse(frontend_homepage)
     redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH, domain=frontend_homepage)
 
@@ -119,7 +120,6 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
                        )
     crud.upgrade_to_discord_user(db=db, user_hash=user_hash, user=user)
 
-    frontend_homepage = os.getenv("FRONTEND_HOMEPAGE")
     redirect = RedirectResponse(frontend_homepage)
     redirect.set_cookie(key="user", value=user_hash, max_age=ONE_MONTH, domain=frontend_homepage )
     return redirect
