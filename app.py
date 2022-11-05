@@ -30,6 +30,7 @@ if os.getenv("DEV"):
         allow_headers=["*"]
     )
 
+
 # Dependency
 def get_db():
     db = SessionLocal()
@@ -79,9 +80,9 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[Redire
     osu_id = me_result["id"]
     hash_secret = os.getenv("SECRET")
     user_hash = hashlib.md5(f"{osu_id}+{hash_secret}".encode()).hexdigest()
-
-    redirect = RedirectResponse(os.getenv("FRONTEND_HOMEPAGE"))
-    redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH)
+    frontend_homepage = os.getenv("FRONTEND_HOMEPAGE")
+    redirect = RedirectResponse(frontend_homepage)
+    redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH, domain=frontend_homepage)
 
     db_user = crud.get_user(db=db, user_hash=user_hash)
     if db_user:
@@ -118,8 +119,9 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
                        )
     crud.upgrade_to_discord_user(db=db, user_hash=user_hash, user=user)
 
-    redirect = RedirectResponse(os.getenv("FRONTEND_HOMEPAGE"))
-    redirect.set_cookie(key="user", value=user_hash, max_age=ONE_MONTH)
+    frontend_homepage = os.getenv("FRONTEND_HOMEPAGE")
+    redirect = RedirectResponse(frontend_homepage)
+    redirect.set_cookie(key="user", value=user_hash, max_age=ONE_MONTH, domain=frontend_homepage )
     return redirect
 
 
