@@ -83,7 +83,7 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[Redire
     hash_secret = os.getenv("SECRET")
     user_hash = hashlib.md5(f"{osu_id}+{hash_secret}".encode()).hexdigest()
     redirect = RedirectResponse(frontend_homepage)
-    redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH, domain=frontend_homepage)
+    redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH)
 
     db_user = crud.get_user(db=db, user_hash=user_hash)
     if db_user:
@@ -121,7 +121,7 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
     crud.upgrade_to_discord_user(db=db, user_hash=user_hash, user=user)
 
     redirect = RedirectResponse(frontend_homepage)
-    redirect.set_cookie(key="user", value=user_hash, max_age=ONE_MONTH, domain=frontend_homepage )
+    redirect.set_cookie(key="user", value=user_hash, max_age=ONE_MONTH)
     return redirect
 
 
