@@ -125,20 +125,20 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
     return redirect
 
 
-@app.get("/users/me/", response_model=schemas.User)
+@app.get("/users/me", response_model=schemas.User)
 async def read_users(db: Session = Depends(get_db),
                      user_hash: str | None = Cookie(default=None)):
     user = crud.get_user(db, user_hash)
     return user
 
 
-@app.get("/users/", response_model=List[schemas.User])
+@app.get("/users", response_model=List[schemas.User])
 async def read_users(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
     user = crud.get_users(db=db, skip=skip, limit=limit)
     return user
 
 
-@app.get("/teams/", response_model=list[schemas.Team])
+@app.get("/teams", response_model=list[schemas.Team])
 async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     teams = crud.get_teams(db, skip=skip, limit=limit)
     return teams
