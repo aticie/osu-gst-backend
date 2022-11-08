@@ -131,9 +131,20 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
 
 @app.get("/users/me", response_model=schemas.User)
 async def read_users(db: Session = Depends(get_db),
-                     user_hash: str | None = Cookie(default=None)):
+                     user_hash: str = Cookie(default=None)):
     user = crud.get_user(db, user_hash)
     return user
+
+
+@app.get("/users/me/invites", response_model=schemas.User)
+async def read_users(db: Session = Depends(get_db),
+                     user_hash: str = Cookie(default=None)):
+    return crud.get_user_invites(db, user_hash)
+
+
+@app.get("/team/invites", response_model=schemas.User)
+async def read_users(team_hash: str, db: Session = Depends(get_db)):
+    return crud.get_team_invites(db, team_hash)
 
 
 @app.get("/users", response_model=List[schemas.User])
@@ -152,13 +163,20 @@ async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_
 async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
                       user_hash: str | None = Cookie(default=None)):
     team_hash = hash_with_secret(user_hash)
-    return crud.create_team(db=db, team=team, user_hash=user_hash, team_hash=team_hash)
+    team = crud.create_team(db=db, team=team, user_hash=user_hash, team_hash=team_hash)
+    if not team:
+        return HTTPException(400, {"status": "Bad Request",
+                                   "details": "User is already on a team."})
+    return team
 
 
 @app.post("/team/join", response_model=schemas.Team)
 def create_team(team_hash: str, db: Session = Depends(get_db),
                 user_hash: str | None = Cookie(default=None)):
-    return crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
+    db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
+    if not db_user:
+        return HTTPException(400, {"status": "Bad Request",
+                                   "details": "Team invite for the user does not exist."})
 
 
 @app.post("/team/invite", response_model=schemas.Team)

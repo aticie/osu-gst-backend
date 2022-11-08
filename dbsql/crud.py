@@ -19,6 +19,14 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
+def get_user_invites(db: Session, user_hash: str):
+    return db.query(models.Invite).filter(models.Invite.user_hash == user_hash).all()
+
+
+def get_team_invites(db: Session, team_hash: str):
+    return db.query(models.Invite).filter(models.Invite.team_hash == team_hash).all()
+
+
 def create_osu_user(db: Session, user: schemas.OsuUserCreate):
     db_user = models.User(**user.dict(), osu_linked=True)
     db.add(db_user)
@@ -59,7 +67,7 @@ def get_invite(db: Session, team_hash: str, user_hash: str):
 def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash: str):
     db_user = get_user(db=db, user_hash=user_hash)
     if db_user.team_hash:
-        raise Exception("User is already in a team.")
+        return None
     db_team = models.Team(**team.dict(), team_hash=team_hash)
     db.add(db_team)
     db.commit()
@@ -70,9 +78,12 @@ def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash
 
 
 def add_to_team(db: Session, team_hash: str, user_hash: str):
+    db_invite = get_invite(db=db, team_hash=team_hash, user_hash=user_hash)
+    if not db_invite:
+        return None
+
     db_user = get_user(db=db, user_hash=user_hash)
     db_team = get_team(db=db, team_hash=team_hash)
-    db_invite = get_invite(db=db, team_hash=team_hash, user_hash=user_hash)
     db_user.team_hash = db_team.team_hash
     db.delete(db_invite)
     db.commit()
@@ -81,6 +92,10 @@ def add_to_team(db: Session, team_hash: str, user_hash: str):
 
 
 def create_invite(db: Session, team_hash: str, user_hash: str):
+    db_user = get_user(db=db, user_hash=user_hash)
+    if db_user.team_hash != team_hash:
+        return None
+
     db_invite = models.Invite(team_hash=team_hash, user_hash=user_hash)
     db.add(db_invite)
     db.commit()
