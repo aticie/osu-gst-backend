@@ -38,7 +38,7 @@ class UserCreate(OsuUser, DiscordUser):
 
 
 class User(UserCreate):
-    team_id: int | None = None
+    team_hash: str | None = None
 
     class Config:
         orm_mode = True
@@ -54,7 +54,7 @@ class TeamCreate(TeamBase):
 
 
 class Team(TeamBase):
-    id: int
+    team_hash: str
     players: List[User] = []
 
     class Config:
