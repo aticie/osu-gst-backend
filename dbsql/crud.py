@@ -60,7 +60,7 @@ def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash
     db_user = get_user(db=db, user_hash=user_hash)
     if db_user.team_hash:
         raise Exception("User is already in a team.")
-    db_team = models.Team(**team.dict())
+    db_team = models.Team(**team.dict(), team_hash=team_hash)
     db.add(db_team)
     db.commit()
     db.refresh(db_team)
