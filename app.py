@@ -42,7 +42,7 @@ def get_db():
         db.close()
 
 
-async def hash_with_secret(string_to_be_hashed: str) -> str:
+def hash_with_secret(string_to_be_hashed: str) -> str:
     hash_secret = os.getenv("SECRET")
     return hashlib.md5(f"{string_to_be_hashed}+{hash_secret}".encode()).hexdigest()
 
@@ -85,7 +85,7 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[Redire
                                            token_endpoint=r"https://osu.ppy.sh/oauth/token",
                                            me_endpoint=r"https://osu.ppy.sh/api/v2/me")
     osu_id = me_result["id"]
-    user_hash = await hash_with_secret(osu_id)
+    user_hash = hash_with_secret(osu_id)
     redirect = RedirectResponse(frontend_homepage)
     redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH)
 
@@ -149,9 +149,9 @@ async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_
 
 
 @app.post("/team/create", response_model=schemas.Team)
-def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
-                user_hash: str | None = Cookie(default=None)):
-    team_hash = await hash_with_secret(user_hash)
+async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
+                      user_hash: str | None = Cookie(default=None)):
+    team_hash = hash_with_secret(user_hash)
     return crud.create_team(db=db, team=team, user_hash=user_hash, team_hash=team_hash)
 
 
