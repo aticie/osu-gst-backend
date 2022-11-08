@@ -47,12 +47,16 @@ def get_team(db: Session, team_hash: str):
     return db.query(models.Team).filter(models.Team.team_hash == team_hash).first()
 
 
+def count_teams(db: Session):
+    return db.query(models.Team).count()
+
+
 def get_invite(db: Session, team_hash: str, user_hash: str):
     return db.query(models.Invite).filter(
         models.Invite.team_hash == team_hash and models.Invite.user_hash == user_hash).first()
 
 
-def create_team(db: Session, team: schemas.TeamCreate, user_hash: str):
+def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash: str):
     db_user = get_user(db=db, user_hash=user_hash)
     if db_user.team_hash:
         raise Exception("User is already in a team.")
