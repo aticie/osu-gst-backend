@@ -54,7 +54,7 @@ def get_invite(db: Session, team_hash: str, user_hash: str):
 
 def create_team(db: Session, team: schemas.TeamCreate, user_hash: str):
     db_user = get_user(db=db, user_hash=user_hash)
-    if db_user.team_id:
+    if db_user.team_hash:
         raise Exception("User is already in a team.")
     db_team = models.Team(**team.dict())
     db.add(db_team)
