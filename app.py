@@ -1,6 +1,6 @@
 import hashlib
 import os
-from typing import Union
+from typing import Union, List
 
 import aiohttp
 from fastapi import Depends, FastAPI, HTTPException, Cookie
@@ -125,22 +125,38 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
     return redirect
 
 
-@app.post("/full-register/", response_model=schemas.User)
-async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_discord_id(db, discord_id=user.discord_id)
-    if db_user:
-        raise HTTPException(status_code=400, detail="User already registered")
-    return crud.create_osu_user(db=db, user=user)
-
-
-@app.get("/users/me", response_model=schemas.User)
+@app.get("/users/me/", response_model=schemas.User)
 async def read_users(db: Session = Depends(get_db),
                      user_hash: str | None = Cookie(default=None)):
     user = crud.get_user(db, user_hash)
     return user
 
 
+@app.get("/users/", response_model=List[schemas.User])
+async def read_users(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
+    user = crud.get_users(db=db, skip=skip, limit=limit)
+    return user
+
+
 @app.get("/teams/", response_model=list[schemas.Team])
 async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    items = crud.get_teams(db, skip=skip, limit=limit)
-    return items
+    teams = crud.get_teams(db, skip=skip, limit=limit)
+    return teams
+
+
+@app.post("/team/create", response_model=schemas.Team)
+def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
+                user_hash: str | None = Cookie(default=None)):
+    return crud.create_team(db=db, team=team, user_hash=user_hash)
+
+
+@app.post("/team/join", response_model=schemas.Team)
+def create_team(team_hash: str, db: Session = Depends(get_db),
+                user_hash: str | None = Cookie(default=None)):
+    return crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
+
+
+@app.post("/team/invite", response_model=schemas.Team)
+def create_team(team_hash: str, db: Session = Depends(get_db),
+                user_hash: str | None = Cookie(default=None)):
+    return crud.create_invite(db=db, team_hash=team_hash, user_hash=user_hash)
