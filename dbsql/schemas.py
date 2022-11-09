@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class TeamBase(BaseModel):
     title: str
+    team_hash: str
     avatar_url: str | None = None
 
     class Config:
