@@ -1,6 +1,6 @@
 import hashlib
 import os
-from typing import Union, List
+from typing import List
 
 import aiohttp
 from fastapi import Depends, FastAPI, HTTPException, Cookie
@@ -83,11 +83,16 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
                                            client_secret=os.getenv("OSU_CLIENT_SECRET"),
                                            redirect_uri=os.getenv("REDIRECT_URI") + "/osu-identify",
                                            token_endpoint=r"https://osu.ppy.sh/oauth/token",
-                                           me_endpoint=r"https://osu.ppy.sh/api/v2/me")
+                                           me_endpoint=r"https://osu.ppy.sh/api/v2/me/osu")
     osu_id = me_result["id"]
     user_hash = hash_with_secret(osu_id)
     redirect = RedirectResponse(frontend_homepage)
     redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH)
+
+    global_rank = me_result["statistics"]["global_rank"]
+    badges = me_result["badges"]
+    num_badges = len(badges)
+    bws_rank = round(global_rank ** (0.9937 ** (num_badges ** 2)))
 
     db_user = crud.get_user(db=db, user_hash=user_hash)
     if db_user:
@@ -97,7 +102,10 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
                          osu_username=me_result["username"],
                          osu_avatar_url=me_result["avatar_url"],
                          osu_global_rank=me_result["statistics"]["global_rank"],
-                         user_hash=user_hash)
+                         user_hash=user_hash,
+                         bws_rank=bws_rank,
+                         badges=num_badges)
+
     crud.create_osu_user(db=db, user=user)
 
     return redirect

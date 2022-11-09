@@ -17,6 +17,8 @@ class User(Base):
     discord_tag = Column(String)
     discord_linked = Column(Boolean, default=False)
     osu_linked = Column(Boolean, default=False)
+    bws_rank = Column(Integer)
+    badges = Column(Integer)
     team_hash = Column(String, ForeignKey("teams.team_hash"))
 
     team = relationship("Team", back_populates="players")

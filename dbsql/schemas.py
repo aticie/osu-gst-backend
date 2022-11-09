@@ -20,6 +20,8 @@ class OsuUser(UserBase):
     osu_username: str
     osu_avatar_url: str
     osu_global_rank: int | None = None
+    bws_rank: int | None = None
+    badges: int = 0
 
     class Config:
         orm_mode = True
