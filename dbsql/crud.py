@@ -22,7 +22,7 @@ def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[models.User]
 
 
 def get_user_invites(db: Session, user_hash: str) -> List[models.Invite]:
-    return db.query(models.Invite).filter(models.Invite.inviter_user_hash == user_hash).all()
+    return db.query(models.Invite).filter(models.Invite.invited_user_hash == user_hash).all()
 
 
 def get_team_invites(db: Session, team_hash: str) -> List[models.Invite]:
