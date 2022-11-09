@@ -92,7 +92,7 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
     global_rank = me_result["statistics"]["global_rank"]
     badges = me_result["badges"]
     num_badges = len(badges)
-    bws_rank = round(global_rank ** (0.9937 ** (num_badges ** 2)))
+    bws_rank = round(global_rank if global_rank else 0 ** (0.9937 ** (num_badges ** 2)))
 
     db_user = crud.get_user(db=db, user_hash=user_hash)
     if db_user:
