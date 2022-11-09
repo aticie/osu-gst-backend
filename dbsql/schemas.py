@@ -6,7 +6,6 @@ from pydantic import BaseModel
 class TeamBase(BaseModel):
     title: str
     avatar_url: str | None = None
-    team_hash: str | None = None
 
     class Config:
         orm_mode = True
@@ -57,7 +56,6 @@ class TeamCreate(TeamBase):
 
 
 class Team(TeamBase):
-    team_hash: str
     players: List[TeamlessUser] = []
 
     class Config:

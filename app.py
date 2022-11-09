@@ -160,7 +160,7 @@ async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     return teams
 
 
-@app.post("/team/create", response_model=schemas.Team)
+@app.post("/team/create", response_model=schemas.TeamCreate)
 async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
                       user_hash: str | None = Cookie(default=None)):
     team_hash = hash_with_secret(user_hash)
