@@ -22,7 +22,7 @@ def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[models.User]
 
 
 def get_user_invites(db: Session, user_hash: str) -> List[models.Invite]:
-    return db.query(models.Invite).filter(models.Invite.user_hash == user_hash).all()
+    return db.query(models.Invite).filter(models.Invite.inviter_user_hash == user_hash).all()
 
 
 def get_team_invites(db: Session, team_hash: str) -> List[models.Invite]:
@@ -63,7 +63,7 @@ def count_teams(db: Session) -> int:
 
 def get_invite(db: Session, team_hash: str, user_hash: str) -> models.Invite:
     return db.query(models.Invite).filter(
-        models.Invite.team_hash == team_hash and models.Invite.user_hash == user_hash).first()
+        models.Invite.team_hash == team_hash and models.Invite.invited_user_hash == user_hash).first()
 
 
 def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash: str) -> Optional[models.Team]:
@@ -99,7 +99,8 @@ def create_invite(db: Session, invited_user_osu_id: int, team_owner_hash: str):
     if not invited_user or invited_user.user_hash == team_owner_hash:
         return None
 
-    db_invite = models.Invite(team_hash=team_owner.team_hash, user_hash=invited_user.user_hash)
+    db_invite = models.Invite(team_hash=team_owner.team_hash, invited_user_hash=invited_user.user_hash,
+                              inviter_user_hash=team_owner.user_hash)
     db.add(db_invite)
     db.commit()
     db.refresh(db_invite)

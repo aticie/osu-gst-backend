@@ -12,11 +12,6 @@ class TeamBase(BaseModel):
         orm_mode = True
 
 
-class Invite(BaseModel):
-    user_hash: str
-    team_hash: str
-
-
 class UserBase(BaseModel):
     ...
 
@@ -64,6 +59,15 @@ class TeamCreate(TeamBase):
 class Team(TeamBase):
     team_hash: str
     players: List[TeamlessUser] = []
+
+    class Config:
+        orm_mode = True
+
+
+class Invite(BaseModel):
+    team: TeamBase
+    inviter: TeamlessUser
+    invited: TeamlessUser
 
     class Config:
         orm_mode = True

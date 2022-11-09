@@ -139,7 +139,8 @@ async def read_me(db: Session = Depends(get_db),
 @app.get("/users/me/invites", response_model=List[schemas.Invite])
 async def read_user_invites(db: Session = Depends(get_db),
                             user_hash: str = Cookie(default=None)):
-    return crud.get_user_invites(db, user_hash)
+    invites = crud.get_user_invites(db, user_hash)
+    return invites
 
 
 @app.get("/team/invites", response_model=List[schemas.Invite])

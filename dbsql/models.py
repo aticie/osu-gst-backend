@@ -36,5 +36,10 @@ class Invite(Base):
     __tablename__ = "invites"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_hash = Column(String, ForeignKey("users.user_hash"))
+    invited_user_hash = Column(String, ForeignKey("users.user_hash"))
+    inviter_user_hash = Column(String, ForeignKey("users.user_hash"))
     team_hash = Column(String, ForeignKey("teams.team_hash"))
+
+    team = relationship("Team")
+    inviter = relationship("User", foreign_keys=[inviter_user_hash])
+    invited = relationship("User", foreign_keys=[invited_user_hash])
