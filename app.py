@@ -165,8 +165,6 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
                       user_hash: str | None = Cookie(default=None)):
     team_hash = hash_with_secret(user_hash)
     team = crud.create_team(db=db, team=team, user_hash=user_hash, team_hash=team_hash)
-    if not team:
-        raise HTTPException(400, "User is already on a team.")
 
     return team
 
@@ -175,8 +173,6 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
 def join_team(team_hash: str, db: Session = Depends(get_db),
               user_hash: str | None = Cookie(default=None)):
     db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
-    if not db_user:
-        raise HTTPException(400, "Team invite for the user does not exist")
 
     return db_user
 
