@@ -1,33 +1,35 @@
+from typing import List, Optional
+
 from sqlalchemy.orm import Session
 
 from . import models, schemas
 
 
-def get_user(db: Session, user_hash: str):
+def get_user(db: Session, user_hash: str) -> models.User:
     return db.query(models.User).filter(models.User.user_hash == user_hash).first()
 
 
-def get_user_by_osu_id(db: Session, osu_id: int):
+def get_user_by_osu_id(db: Session, osu_id: int) -> models.User:
     return db.query(models.User).filter(models.User.osu_id == osu_id).first()
 
 
-def get_user_by_discord_id(db: Session, discord_id: str):
+def get_user_by_discord_id(db: Session, discord_id: str) -> models.User:
     return db.query(models.User).filter(models.User.discord_id == discord_id).first()
 
 
-def get_users(db: Session, skip: int = 0, limit: int = 100):
+def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[models.User]:
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-def get_user_invites(db: Session, user_hash: str):
+def get_user_invites(db: Session, user_hash: str) -> List[models.Invite]:
     return db.query(models.Invite).filter(models.Invite.user_hash == user_hash).all()
 
 
-def get_team_invites(db: Session, team_hash: str):
+def get_team_invites(db: Session, team_hash: str) -> List[models.Invite]:
     return db.query(models.Invite).filter(models.Invite.team_hash == team_hash).all()
 
 
-def create_osu_user(db: Session, user: schemas.OsuUserCreate):
+def create_osu_user(db: Session, user: schemas.OsuUserCreate) -> models.User:
     db_user = models.User(**user.dict(), osu_linked=True)
     db.add(db_user)
     db.commit()
@@ -35,7 +37,7 @@ def create_osu_user(db: Session, user: schemas.OsuUserCreate):
     return db_user
 
 
-def upgrade_to_discord_user(db: Session, user_hash: str, user: schemas.DiscordUser):
+def upgrade_to_discord_user(db: Session, user_hash: str, user: schemas.DiscordUser) -> models.User:
     db_user = get_user(db=db, user_hash=user_hash)
 
     db_user.discord_id = user.discord_id
@@ -47,24 +49,24 @@ def upgrade_to_discord_user(db: Session, user_hash: str, user: schemas.DiscordUs
     return db_user
 
 
-def get_teams(db: Session, skip: int = 0, limit: int = 100):
+def get_teams(db: Session, skip: int = 0, limit: int = 100) -> List[models.Team]:
     return db.query(models.Team).offset(skip).limit(limit).all()
 
 
-def get_team(db: Session, team_hash: str):
+def get_team(db: Session, team_hash: str) -> models.Team:
     return db.query(models.Team).filter(models.Team.team_hash == team_hash).first()
 
 
-def count_teams(db: Session):
+def count_teams(db: Session) -> int:
     return db.query(models.Team).count()
 
 
-def get_invite(db: Session, team_hash: str, user_hash: str):
+def get_invite(db: Session, team_hash: str, user_hash: str) -> models.Invite:
     return db.query(models.Invite).filter(
         models.Invite.team_hash == team_hash and models.Invite.user_hash == user_hash).first()
 
 
-def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash: str):
+def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash: str) -> Optional[models.Team]:
     db_user = get_user(db=db, user_hash=user_hash)
     if db_user.team_hash:
         return None
@@ -91,12 +93,13 @@ def add_to_team(db: Session, team_hash: str, user_hash: str):
     return db_user
 
 
-def create_invite(db: Session, team_hash: str, user_hash: str):
-    db_user = get_user(db=db, user_hash=user_hash)
-    if db_user.team_hash != team_hash:
+def create_invite(db: Session, invited_user_osu_id: int, team_owner_hash: str):
+    team_owner = get_user(db=db, user_hash=team_owner_hash)
+    invited_user = get_user_by_osu_id(db=db, osu_id=invited_user_osu_id)
+    if not invited_user or invited_user.user_hash == team_owner_hash:
         return None
 
-    db_invite = models.Invite(team_hash=team_hash, user_hash=user_hash)
+    db_invite = models.Invite(team_hash=team_owner.team_hash, user_hash=invited_user.user_hash)
     db.add(db_invite)
     db.commit()
     db.refresh(db_invite)

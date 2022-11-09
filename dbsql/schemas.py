@@ -3,9 +3,18 @@ from typing import List
 from pydantic import BaseModel
 
 
+class TeamBase(BaseModel):
+    title: str
+    avatar_url: str | None = None
+    team_hash: str | None = None
+
+    class Config:
+        orm_mode = True
+
+
 class Invite(BaseModel):
     user_hash: str
-    team_hash: int
+    team_hash: str
 
 
 class UserBase(BaseModel):
@@ -37,16 +46,15 @@ class UserCreate(OsuUser, DiscordUser):
     ...
 
 
+class TeamlessUser(UserCreate):
+    ...
+
+
 class User(UserCreate):
-    team_hash: str | None = None
+    team: TeamBase | None = None
 
     class Config:
         orm_mode = True
-
-
-class TeamBase(BaseModel):
-    title: str
-    avatar_url: str | None = None
 
 
 class TeamCreate(TeamBase):
@@ -55,7 +63,7 @@ class TeamCreate(TeamBase):
 
 class Team(TeamBase):
     team_hash: str
-    players: List[User] = []
+    players: List[TeamlessUser] = []
 
     class Config:
         orm_mode = True

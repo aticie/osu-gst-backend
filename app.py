@@ -66,8 +66,8 @@ async def oauth2_authorization(code: str,
 
         access_token = contents.get("access_token")
         if not access_token:
-            return HTTPException(500,
-                                 {"Status": "Something went wrong with the authentication, didn't get access token..."})
+            raise HTTPException(500,
+                                "Something went wrong with the authentication, didn't get access token...")
 
         headers = {"Authorization": f"Bearer {access_token}"}
         async with sess.get(me_endpoint, headers=headers) as resp:
@@ -77,7 +77,7 @@ async def oauth2_authorization(code: str,
 
 
 @app.get("/osu-identify", response_class=RedirectResponse)
-async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[RedirectResponse, HTTPException]:
+async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResponse:
     me_result = await oauth2_authorization(code=code,
                                            client_id=os.getenv("OSU_CLIENT_ID"),
                                            client_secret=os.getenv("OSU_CLIENT_SECRET"),
@@ -103,7 +103,7 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> Union[Redire
     return redirect
 
 
-@app.get("/discord-identify")
+@app.get("/discord-identify", response_class=RedirectResponse)
 async def discord_identify(code: str, db: Session = Depends(get_db),
                            user_hash: str | None = Cookie(default=None)):
     me_result = await oauth2_authorization(code=code,
@@ -130,20 +130,20 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
 
 
 @app.get("/users/me", response_model=schemas.User)
-async def read_users(db: Session = Depends(get_db),
-                     user_hash: str = Cookie(default=None)):
+async def read_me(db: Session = Depends(get_db),
+                  user_hash: str = Cookie(default=None)):
     user = crud.get_user(db, user_hash)
     return user
 
 
-@app.get("/users/me/invites", response_model=schemas.User)
-async def read_users(db: Session = Depends(get_db),
-                     user_hash: str = Cookie(default=None)):
+@app.get("/users/me/invites", response_model=List[schemas.Invite])
+async def read_user_invites(db: Session = Depends(get_db),
+                            user_hash: str = Cookie(default=None)):
     return crud.get_user_invites(db, user_hash)
 
 
-@app.get("/team/invites", response_model=schemas.User)
-async def read_users(team_hash: str, db: Session = Depends(get_db)):
+@app.get("/team/invites", response_model=List[schemas.Invite])
+async def read_team_invites(team_hash: str, db: Session = Depends(get_db)):
     return crud.get_team_invites(db, team_hash)
 
 
@@ -153,7 +153,7 @@ async def read_users(db: Session = Depends(get_db), skip: int = 0, limit: int = 
     return user
 
 
-@app.get("/teams", response_model=list[schemas.Team])
+@app.get("/teams", response_model=List[schemas.Team])
 async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     teams = crud.get_teams(db, skip=skip, limit=limit)
     return teams
@@ -165,21 +165,23 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
     team_hash = hash_with_secret(user_hash)
     team = crud.create_team(db=db, team=team, user_hash=user_hash, team_hash=team_hash)
     if not team:
-        return HTTPException(400, {"status": "Bad Request",
-                                   "details": "User is already on a team."})
+        raise HTTPException(400, "User is already on a team.")
+
     return team
 
 
-@app.post("/team/join", response_model=schemas.Team)
-def create_team(team_hash: str, db: Session = Depends(get_db),
-                user_hash: str | None = Cookie(default=None)):
+@app.post("/team/join", response_model=schemas.User)
+def join_team(team_hash: str, db: Session = Depends(get_db),
+              user_hash: str | None = Cookie(default=None)):
     db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
     if not db_user:
-        return HTTPException(400, {"status": "Bad Request",
-                                   "details": "Team invite for the user does not exist."})
+        raise HTTPException(400, "Team invite for the user does not exist")
+
+    return db_user
 
 
-@app.post("/team/invite", response_model=schemas.Team)
-def create_team(team_hash: str, db: Session = Depends(get_db),
-                user_hash: str | None = Cookie(default=None)):
-    return crud.create_invite(db=db, team_hash=team_hash, user_hash=user_hash)
+@app.post("/team/invite", response_model=schemas.Invite)
+def create_invite(other_user_osu_id: int,
+                  db: Session = Depends(get_db),
+                  user_hash: str | None = Cookie(default=None)):
+    return crud.create_invite(db=db, team_owner_hash=user_hash, invited_user_osu_id=other_user_osu_id)
