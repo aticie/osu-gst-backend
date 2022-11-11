@@ -24,17 +24,21 @@ if os.getenv("DEV"):
     origins = [
         "*"
     ]
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"]
-    )
 else:
     app = FastAPI(docs_url=None, openapi_url=None, redoc_url=None)
-
+    origins = [
+        "https://www.gstlive.org",
+        "http://www.gstlive.org",
+        "https://gstlive.org",
+        "http://gstlive.org",
+    ]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 # Dependency
 def get_db():
