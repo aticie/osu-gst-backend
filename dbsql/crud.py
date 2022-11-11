@@ -54,7 +54,6 @@ def leave_team(db: Session, user_hash: str) -> models.User:
     return db_user
 
 
-
 def upgrade_to_discord_user(db: Session, user_hash: str, user: schemas.DiscordUser) -> models.User:
     db_user = get_user(db=db, user_hash=user_hash)
 

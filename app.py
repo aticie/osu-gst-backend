@@ -18,9 +18,9 @@ ONE_MONTH = 2592000
 models.Base.metadata.create_all(bind=engine)
 
 frontend_homepage = os.getenv("FRONTEND_HOMEPAGE")
-app = FastAPI()
 
 if os.getenv("DEV"):
+    app = FastAPI()
     origins = [
         "*"
     ]
@@ -32,6 +32,8 @@ if os.getenv("DEV"):
         allow_methods=["*"],
         allow_headers=["*"]
     )
+else:
+    app = FastAPI(docs_url=None, openapi_url=None, redoc_url=None)
 
 
 # Dependency
@@ -127,12 +129,12 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
                                            token_endpoint=r"https://discord.com/api/oauth2/token",
                                            me_endpoint=r"https://discord.com/api/v10/users/@me")
 
-    id = me_result["id"]
+    user_id = me_result["id"]
     username = me_result["username"]
     discriminator = me_result["discriminator"]
     avatar_hash = me_result["avatar"]
-    avatar_url = f"https://cdn.discordapp.com/avatars/{id}/{avatar_hash}.png"
-    user = DiscordUser(discord_id=id,
+    avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{avatar_hash}.png"
+    user = DiscordUser(discord_id=user_id,
                        discord_avatar_url=avatar_url,
                        discord_tag=f"{username}#{discriminator}",
                        )
@@ -193,7 +195,7 @@ def join_team(team_hash: str, db: Session = Depends(get_db),
 
 @app.post("/team/leave", response_model=schemas.User)
 def leave_team(db: Session = Depends(get_db),
-              user_hash: str | None = Cookie(default=None)):
+               user_hash: str | None = Cookie(default=None)):
     db_user = crud.leave_team(db=db, user_hash=user_hash)
 
     return db_user
