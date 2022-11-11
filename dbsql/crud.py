@@ -38,6 +38,23 @@ def create_osu_user(db: Session, user: schemas.OsuUserCreate) -> models.User:
     return db_user
 
 
+def leave_team(db: Session, user_hash: str) -> models.User:
+    db_user = get_user(db=db, user_hash=user_hash)
+    if db_user.team is None:
+        raise HTTPException(400, "User is not in a team")
+
+    db_team = get_team(db=db, team_hash=db_user.team_hash)
+    if len(db_team.players) == 1:
+        db.delete(db_team)
+    else:
+        db_user.team_hash = None
+
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+
 def upgrade_to_discord_user(db: Session, user_hash: str, user: schemas.DiscordUser) -> models.User:
     db_user = get_user(db=db, user_hash=user_hash)
 

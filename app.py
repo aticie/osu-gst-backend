@@ -1,5 +1,6 @@
 import hashlib
 import os
+import uuid
 from typing import List
 
 import aiohttp
@@ -44,6 +45,11 @@ def get_db():
 
 def hash_with_secret(string_to_be_hashed: str) -> str:
     hash_secret = os.getenv("SECRET")
+    return hashlib.md5(f"{string_to_be_hashed}+{hash_secret}".encode()).hexdigest()
+
+
+def hash_with_random(string_to_be_hashed: str) -> str:
+    hash_secret = uuid.uuid4()
     return hashlib.md5(f"{string_to_be_hashed}+{hash_secret}".encode()).hexdigest()
 
 
@@ -168,10 +174,10 @@ async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     return teams
 
 
-@app.post("/team/create", response_model=schemas.TeamCreate)
+@app.post("/team/create", response_model=schemas.Team)
 async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
                       user_hash: str | None = Cookie(default=None)):
-    team_hash = hash_with_secret(user_hash)
+    team_hash = hash_with_random(user_hash)
     team = crud.create_team(db=db, team=team, user_hash=user_hash, team_hash=team_hash)
 
     return team
@@ -181,6 +187,14 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
 def join_team(team_hash: str, db: Session = Depends(get_db),
               user_hash: str | None = Cookie(default=None)):
     db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
+
+    return db_user
+
+
+@app.post("/team/leave", response_model=schemas.User)
+def leave_team(db: Session = Depends(get_db),
+              user_hash: str | None = Cookie(default=None)):
+    db_user = crud.leave_team(db=db, user_hash=user_hash)
 
     return db_user
 
