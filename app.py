@@ -1,7 +1,7 @@
 import hashlib
 import os
 import uuid
-from typing import List
+from typing import List, Optional
 
 import aiohttp
 from fastapi import Depends, FastAPI, HTTPException, Cookie
@@ -145,7 +145,7 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
     return redirect
 
 
-@app.get("/users/me", response_model=schemas.User)
+@app.get("/users/me", response_model=Optional[schemas.User])
 async def read_me(db: Session = Depends(get_db),
                   user_hash: str = Cookie(default=None)):
     user = crud.get_user(db, user_hash)
