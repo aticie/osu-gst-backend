@@ -5,7 +5,6 @@ from pydantic import BaseModel
 
 class TeamBase(BaseModel):
     title: str
-    team_hash: str
     avatar_url: str | None = None
 
     class Config:
@@ -47,8 +46,12 @@ class TeamlessUser(UserCreate):
     ...
 
 
+class PlayerlessTeam(TeamBase):
+    team_hash: str
+
+
 class User(UserCreate):
-    team: TeamBase | None = None
+    team: PlayerlessTeam | None = None
 
     class Config:
         orm_mode = True
@@ -58,7 +61,7 @@ class TeamCreate(TeamBase):
     ...
 
 
-class Team(TeamBase):
+class Team(PlayerlessTeam):
     players: List[TeamlessUser] = []
 
     class Config:
@@ -66,7 +69,7 @@ class Team(TeamBase):
 
 
 class Invite(BaseModel):
-    team: TeamBase
+    team: PlayerlessTeam
     inviter: TeamlessUser
     invited: TeamlessUser
 
