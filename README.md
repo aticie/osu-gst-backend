@@ -1,29 +1,41 @@
----
-title: FastAPI
-description: A FastAPI server
-tags:
-  - fastapi
-  - python
----
+# GST:LIVE Backend Server
 
-# FastAPI Example
+## Running the Server
 
-This example starts up a [FastAPI](https://fastapi.tiangolo.com/) server.
+Backend server requires a PostgreSQL Database and the following environment variables:
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https%3A%2F%2Fgithub.com%2Frailwayapp-starters%2Ffastapi)
-## ✨ Features
+- DATABASE_URL: PostgreSQL database url.
+- FRONTEND_HOMEPAGE: URL to the frontend homepage.
+- OSU_CLIENT_ID: osu! client ID - can be taken from https://osu.ppy.sh/home/account/edit.
+- OSU_CLIENT_SECRET: osu! client secret - can be taken from https://osu.ppy.sh/home/account/edit.
+- DISCORD_CLIENT_ID: Discord client ID - can be taken from https://discord.com/developers/applications.
+- DISCORD_CLIENT_SECRET: Discord client secret - can be taken from https://discord.com/developers/applications.
+- REDIRECT_URI: Main URL for the backend server.
+- SECRET: Secret string for hashing the user ids.
+- PORT: Port for server to run on.
 
-- FastAPI
-- Python 3
+### Docker
 
-## 💁‍♀️ How to use
+Build and run the Dockerfile with:
 
-- Deploy using the button 👆
-- Clone locally and install packages with Pip using `pip install -r requirements.txt` or Poetry using `poetry install`
-- Connect to your project using `railway link`
-- Run locally using `uvicorn main:app --reload`
+```bash
+export PORT=8000
+docker build -t gstlive-backend .
+docker run -d -p $PORT:$PORT --env-file .env gstlive-backend
+```
 
-## 📝 Notes
+### Python
 
-- To learn about how to use FastAPI with most of its features, you can visit the [FastAPI Documentation](https://fastapi.tiangolo.com/tutorial/).
-- FastAPI provides automatic documentation to call and test your API directly from the browser. You can access it at `/docs` with [Swagger](https://github.com/swagger-api/swagger-ui) or at `/redoc` with [Redoc](https://github.com/Rebilly/ReDoc).
+Create a virtual environment & install the requirements.
+
+```bash
+python -m venv gst-env
+source gst-env/bin/activate
+pip install -r requirements.txt
+```
+
+Run the server using:
+
+```bash
+python main.py
+```
