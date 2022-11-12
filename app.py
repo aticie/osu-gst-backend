@@ -131,7 +131,7 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
     
     num_badges = 0
     for badge in badges:
-        description = badge.description.lower()
+        description = badge["description"].lower()
 
         # If description contains any word that is in filter
         if any(filter_word in description for filter_word in BADGE_WORD_FILTER):
