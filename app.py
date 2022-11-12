@@ -130,14 +130,22 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
     badges = me_result["badges"]
     
     num_badges = 0
+    print(num_badges)
+
     for badge in badges:
         description = badge["description"].lower()
 
+        print("description", description)
+
         # If description contains any word that is in filter
         if any(filter_word in description for filter_word in BADGE_WORD_FILTER):
+            print("skipping", description)
             continue
 
+        print("increase badge count for: ", description)
         num_badges += 1
+
+    print("total num badges", num_badges)
 
     bws_rank = round(global_rank if global_rank else 0 ** (0.9937 ** (num_badges ** 2)))
 
