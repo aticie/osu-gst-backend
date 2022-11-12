@@ -5,7 +5,6 @@ from pydantic import BaseModel, validator
 
 class TeamBase(BaseModel):
     title: str
-    avatar_url: str | None = None
 
     @validator('title')
     def title_must_match_the_rules(cls, v):
@@ -58,6 +57,7 @@ class TeamlessUser(UserCreate):
 
 class PlayerlessTeam(TeamBase):
     team_hash: str
+    avatar_url: str | None = None
 
 
 class User(UserCreate):
