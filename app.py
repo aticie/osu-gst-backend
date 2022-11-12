@@ -62,19 +62,6 @@ def hash_with_random(string_to_be_hashed: str) -> str:
     return hashlib.md5(f"{string_to_be_hashed}+{hash_secret}".encode()).hexdigest()
 
 
-async def oauth2_client_creds(client_id: str,
-                              client_secret: str,
-                              auth_endpoint: str,
-                              token_endpoint: str):
-    params = {"client_id": client_id,
-              "response_type": "token"}
-    async with aiohttp.ClientSession() as sess:
-        async with sess.get(auth_endpoint, params=params) as resp:
-            contents = await resp.read()
-
-    print(contents)
-
-
 async def oauth2_authorization(code: str,
                                client_id: str,
                                client_secret: str,
