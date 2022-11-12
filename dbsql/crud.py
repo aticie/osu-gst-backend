@@ -45,6 +45,11 @@ def leave_team(db: Session, user_hash: str) -> models.User:
 
     db_team = get_team(db=db, team_hash=db_user.team_hash)
     if len(db_team.players) == 1:
+        db_team_invites = get_team_invites(db=db, team_hash=db_team.team_hash)
+
+        for invite in db_team_invites:
+            db.delete(invite)
+
         db.delete(db_team)
     else:
         db_user.team_hash = None
