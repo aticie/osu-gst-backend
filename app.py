@@ -84,9 +84,9 @@ async def oauth2_authorization(code: str,
             raise HTTPException(500,
                                 "Something went wrong with the authentication, didn't get access token...")
 
-    me_result = await get_me_data(access_token, me_endpoint, sess)
+        me_result = await get_me_data(access_token, me_endpoint, sess)
 
-    return me_result
+        return me_result
 
 
 async def get_me_data(access_token, me_endpoint, sess):
