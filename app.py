@@ -16,6 +16,22 @@ from dbsql.schemas import OsuUserCreate, DiscordUser
 from utils.image import check_image_is_in_formats
 
 ONE_MONTH = 2592000
+BADGE_WORD_FILTER = [
+    "taiko"
+    "catch"
+    "mania"
+    "mapping"
+    "nominator"
+    "nomination"
+    "beatmap" 
+    "contribution" 
+    "mappers'"
+    "mapper's"
+    "mapper"
+    "spotlight"
+    "playlist"
+    "fanart"
+]
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -112,7 +128,17 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
 
     global_rank = me_result["statistics"]["global_rank"]
     badges = me_result["badges"]
-    num_badges = len(badges)
+    
+    num_badges = 0
+    for badge in badges:
+        description = badge.description.lower()
+
+        # If description contains any word that is in filter
+        if any(filter_word in description for filter_word in BADGE_WORD_FILTER):
+            continue
+
+        num_badges += 1
+
     bws_rank = round(global_rank if global_rank else 0 ** (0.9937 ** (num_badges ** 2)))
 
     db_user = crud.get_user(db=db, user_hash=user_hash)
