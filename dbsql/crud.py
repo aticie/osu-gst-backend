@@ -131,3 +131,15 @@ def create_invite(db: Session, invited_user_osu_id: int, team_owner_hash: str):
     db.commit()
     db.refresh(db_invite)
     return db_invite
+
+
+def create_avatar(db: Session, user_hash: str, img_url: str):
+    db_user = get_user(db=db, user_hash=user_hash)
+    if db_user.team_hash is None:
+        raise HTTPException(400, "User does not belong to a team.")
+
+    db_team = get_team(db=db, team_hash=db_user.team_hash)
+    db_team.avatar_url = img_url
+    db.commit()
+    db.refresh(db_team)
+    return db_team

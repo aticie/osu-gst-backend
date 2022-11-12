@@ -4,14 +4,16 @@ import uuid
 from typing import List, Optional
 
 import aiohttp
-from fastapi import Depends, FastAPI, HTTPException, Cookie
+from fastapi import Depends, FastAPI, HTTPException, Cookie, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
 from dbsql import crud, models, schemas
 from dbsql.database import SessionLocal, engine
 from dbsql.schemas import OsuUserCreate, DiscordUser
+from utils.image import check_image_is_in_formats
 
 ONE_MONTH = 2592000
 
@@ -40,6 +42,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+
 # Dependency
 def get_db():
     db = SessionLocal()
@@ -57,6 +60,19 @@ def hash_with_secret(string_to_be_hashed: str) -> str:
 def hash_with_random(string_to_be_hashed: str) -> str:
     hash_secret = uuid.uuid4()
     return hashlib.md5(f"{string_to_be_hashed}+{hash_secret}".encode()).hexdigest()
+
+
+async def oauth2_client_creds(client_id: str,
+                              client_secret: str,
+                              auth_endpoint: str,
+                              token_endpoint: str):
+    params = {"client_id": client_id,
+              "response_type": "token"}
+    async with aiohttp.ClientSession() as sess:
+        async with sess.get(auth_endpoint, params=params) as resp:
+            contents = await resp.read()
+
+    print(contents)
 
 
 async def oauth2_authorization(code: str,
@@ -81,9 +97,15 @@ async def oauth2_authorization(code: str,
             raise HTTPException(500,
                                 "Something went wrong with the authentication, didn't get access token...")
 
-        headers = {"Authorization": f"Bearer {access_token}"}
-        async with sess.get(me_endpoint, headers=headers) as resp:
-            me_result = await resp.json()
+    me_result = await get_me_data(access_token, me_endpoint, sess)
+
+    return me_result
+
+
+async def get_me_data(access_token, me_endpoint, sess):
+    headers = {"Authorization": f"Bearer {access_token}"}
+    async with sess.get(me_endpoint, headers=headers) as resp:
+        me_result = await resp.json()
 
     return me_result
 
@@ -190,23 +212,59 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
 
 
 @app.post("/team/join", response_model=schemas.User)
-def join_team(team_hash: str, db: Session = Depends(get_db),
-              user_hash: str | None = Cookie(default=None)):
+async def join_team(team_hash: str, db: Session = Depends(get_db),
+                    user_hash: str | None = Cookie(default=None)):
     db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
 
     return db_user
 
 
 @app.post("/team/leave", response_model=schemas.User)
-def leave_team(db: Session = Depends(get_db),
-               user_hash: str | None = Cookie(default=None)):
+async def leave_team(db: Session = Depends(get_db),
+                     user_hash: str | None = Cookie(default=None)):
     db_user = crud.leave_team(db=db, user_hash=user_hash)
 
     return db_user
 
 
 @app.post("/team/invite", response_model=schemas.Invite)
-def create_invite(other_user_osu_id: int,
-                  db: Session = Depends(get_db),
-                  user_hash: str | None = Cookie(default=None)):
+async def create_invite(other_user_osu_id: int,
+                        db: Session = Depends(get_db),
+                        user_hash: str | None = Cookie(default=None)):
     return crud.create_invite(db=db, team_owner_hash=user_hash, invited_user_osu_id=other_user_osu_id)
+
+
+@app.post("/avatar/upload")
+async def create_avatar(request: Request,
+                        file: UploadFile,
+                        db: Session = Depends(get_db),
+                        user_hash: str | None = Cookie(default=None)):
+    max_upload_size = 10000000  # 10 MB
+    if 'content-length' not in request.headers:
+        raise HTTPException(411)
+    content_length = int(request.headers['content-length'])
+    if content_length > max_upload_size:
+        raise HTTPException(413)
+
+    if not check_image_is_in_formats(image_file=file.file,
+                                     formats=['png', 'jpg', 'jpeg', 'gif']):
+        raise HTTPException(400,
+                            "Uploaded file must be one of the following formats: '.png', '.jpg', '.jpeg', or '.gif'")
+
+    img_response = await upload_binary_file_to_imgur(file=file, imgur_client_id=os.getenv("IMGUR_CLIENT_ID"))
+    img_url = img_response["link"]
+    return crud.create_avatar(db=db, user_hash=user_hash, img_url=img_url)
+
+
+async def upload_binary_file_to_imgur(file: UploadFile, imgur_client_id: str):
+    headers = {"Authorization": f"Client-ID {imgur_client_id}"}
+    await file.seek(0)
+    contents = await file.read()
+    data = {"image": contents,
+            "type": "file"}
+    async with aiohttp.ClientSession(headers=headers) as sess:
+        async with sess.post("https://api.imgur.com/3/upload", data=data) as resp:
+            response = await resp.json()
+    if response["status"] != 200:
+        raise HTTPException(response["status"])
+    return response["data"]
