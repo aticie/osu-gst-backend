@@ -10,10 +10,12 @@ Backend server requires a PostgreSQL Database and the following environment vari
 - OSU_CLIENT_SECRET: osu! client secret - can be taken from https://osu.ppy.sh/home/account/edit.
 - DISCORD_CLIENT_ID: Discord client ID - can be taken from https://discord.com/developers/applications.
 - DISCORD_CLIENT_SECRET: Discord client secret - can be taken from https://discord.com/developers/applications.
+- IMGUR_CLIENT_ID: Imgur client ID - can be taken from https://api.imgur.com/.
 - REDIRECT_URI: Main URL for the backend server.
 - SECRET: Secret string for hashing the user ids.
 - PORT: Port for server to run on.
-
+- DEV: Developer mode.
+- 
 ### Docker
 
 Build and run the Dockerfile with:
