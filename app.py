@@ -215,7 +215,7 @@ async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     return teams
 
 
-@app.post("/team/create", response_model=schemas.Team)
+@app.post("/team", response_model=schemas.Team)
 async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
                       user_hash: str | None = Cookie(default=None)):
     team_hash = hash_with_random(user_hash)
@@ -232,7 +232,7 @@ async def user_join_team(team_hash: str, db: Session = Depends(get_db),
     return db_user
 
 
-@app.post("/team/leave", response_model=schemas.User)
+@app.delete("/team", response_model=schemas.User)
 async def leave_team(db: Session = Depends(get_db),
                      user_hash: str | None = Cookie(default=None)):
     db_user = crud.leave_team(db=db, user_hash=user_hash)
@@ -247,14 +247,14 @@ async def team_create_invite(other_user_osu_id: int,
     return crud.create_invite(db=db, team_owner_hash=user_hash, invited_user_osu_id=other_user_osu_id)
 
 
-@app.post("/team/invite/cancel", response_model=Optional[List[schemas.Invite]])
+@app.delete("/team/invite", response_model=Optional[List[schemas.Invite]])
 async def team_cancel_invite(other_user_osu_id: int,
                              db: Session = Depends(get_db),
                              user_hash: str | None = Cookie(default=None)):
     return crud.cancel_invite(db=db, user_hash=user_hash, invited_user_osu_id=other_user_osu_id)
 
 
-@app.post("/user/invite/decline", response_model=schemas.User)
+@app.delete("/user/invite", response_model=schemas.User)
 async def user_decline_invite(team_hash: str,
                               db: Session = Depends(get_db),
                               user_hash: str | None = Cookie(default=None)):
