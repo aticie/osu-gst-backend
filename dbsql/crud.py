@@ -180,11 +180,7 @@ def cancel_invite(db: Session, user_hash: str, invited_user_osu_id: int):
     return team_invites
 
 
-def ban_user(db: Session, user_hash: str, user_osu_id: int):
-    admin_user = get_user(db=db, user_hash=user_hash)
-    if not admin_user.is_admin:
-        raise HTTPException(403, "Unauthorized for banning a user.")
-
+def ban_user(db: Session, user_osu_id: int):
     user_to_be_banned = get_user_by_osu_id(db=db, osu_id=user_osu_id)
     if user_to_be_banned.team_hash:
         team = get_team(db=db, team_hash=user_to_be_banned.team_hash)

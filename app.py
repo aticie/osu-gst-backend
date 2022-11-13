@@ -297,6 +297,5 @@ async def create_avatar(request: Request,
 
 @app.post("/user/ban", dependencies=[Depends(user_is_admin)])
 async def ban_user(user_osu_id: int,
-                   db: Session = Depends(get_db),
-                   user_hash: str | None = Cookie(default=None)):
-    return crud.ban_user(db=db, user_hash=user_hash, user_osu_id=user_osu_id)
+                   db: Session = Depends(get_db)):
+    return crud.ban_user(db=db, user_osu_id=user_osu_id)
