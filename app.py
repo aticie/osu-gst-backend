@@ -7,7 +7,6 @@ import aiohttp
 from fastapi import Depends, FastAPI, HTTPException, Cookie, UploadFile, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
 from dbsql import crud, models, schemas
@@ -217,20 +216,27 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
 @app.get("/users/me", response_model=schemas.User)
 async def read_me(db: Session = Depends(get_db),
                   user_hash: str = Cookie(default=None)):
-    user = crud.get_user(db, user_hash)
+    user = crud.get_user(db=db, user_hash=user_hash)
+    return user
+
+
+@app.put("/users/me", response_model=schemas.User)
+async def unlink_user_discord(db: Session = Depends(get_db),
+                            user_hash: str = Cookie(default=None)):
+    user = crud.downgrade_from_discord_user(db=db, user_hash=user_hash)
     return user
 
 
 @app.get("/users/me/invites", response_model=List[schemas.Invite])
 async def read_user_invites(db: Session = Depends(get_db),
                             user_hash: str = Cookie(default=None)):
-    invites = crud.get_user_invites(db, user_hash)
+    invites = crud.get_user_invites(db=db, user_hash=user_hash)
     return invites
 
 
 @app.get("/team/invites", response_model=List[schemas.Invite])
 async def read_team_invites(team_hash: str, db: Session = Depends(get_db)):
-    return crud.get_team_invites(db, team_hash)
+    return crud.get_team_invites(db=db, team_hash=team_hash)
 
 
 @app.get("/users", response_model=List[schemas.User])

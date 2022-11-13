@@ -72,6 +72,18 @@ def upgrade_to_discord_user(db: Session, user_hash: str, user: schemas.DiscordUs
     return db_user
 
 
+def downgrade_from_discord_user(db: Session, user_hash: str) -> models.User:
+    db_user = get_user(db=db, user_hash=user_hash)
+
+    db_user.discord_id = None
+    db_user.discord_tag = None
+    db_user.discord_avatar_url = None
+    db_user.discord_linked = False
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
 def get_teams(db: Session, skip: int = 0, limit: int = 100) -> List[models.Team]:
     return db.query(models.Team).offset(skip).limit(limit).all()
 
