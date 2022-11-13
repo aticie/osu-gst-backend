@@ -114,10 +114,10 @@ async def get_me_data(access_token, me_endpoint):
 @app.get("/osu-identify", response_class=RedirectResponse)
 async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResponse:
     access_token = await oauth2_authorization(code=code,
-                                           client_id=os.getenv("OSU_CLIENT_ID"),
-                                           client_secret=os.getenv("OSU_CLIENT_SECRET"),
-                                           redirect_uri=os.getenv("REDIRECT_URI") + "/osu-identify",
-                                           token_endpoint=r"https://osu.ppy.sh/oauth/token")
+                                              client_id=os.getenv("OSU_CLIENT_ID"),
+                                              client_secret=os.getenv("OSU_CLIENT_SECRET"),
+                                              redirect_uri=os.getenv("REDIRECT_URI") + "/osu-identify",
+                                              token_endpoint=r"https://osu.ppy.sh/oauth/token")
     me_result = await get_me_data(access_token, r"https://osu.ppy.sh/api/v2/me/osu")
     osu_id = me_result["id"]
     user_hash = hash_with_secret(osu_id)
@@ -162,12 +162,12 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
 async def discord_identify(code: str, db: Session = Depends(get_db),
                            user_hash: str | None = Cookie(default=None)):
     access_token = await oauth2_authorization(code=code,
-                                           client_id=os.getenv("DISCORD_CLIENT_ID"),
-                                           client_secret=os.getenv("DISCORD_CLIENT_SECRET"),
-                                           redirect_uri=os.getenv("REDIRECT_URI") + "/discord-identify",
-                                           token_endpoint=r"https://discord.com/api/oauth2/token")
+                                              client_id=os.getenv("DISCORD_CLIENT_ID"),
+                                              client_secret=os.getenv("DISCORD_CLIENT_SECRET"),
+                                              redirect_uri=os.getenv("REDIRECT_URI") + "/discord-identify",
+                                              token_endpoint=r"https://discord.com/api/oauth2/token")
     me_result = await get_me_data(access_token=access_token,
-                                  me_endpoint=r"https://osu.ppy.sh/api/v2/me/osu")
+                                  me_endpoint=r"https://discord.com/api/10/users/@me")
     user_id = me_result["id"]
     username = me_result["username"]
     discriminator = me_result["discriminator"]
@@ -178,7 +178,6 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
                        discord_tag=f"{username}#{discriminator}",
                        )
     crud.upgrade_to_discord_user(db=db, user_hash=user_hash, user=user)
-    await user_join_guild(user_id=user_id, access_token=access_token)
 
     redirect = RedirectResponse(frontend_homepage)
     redirect.set_cookie(key="user", value=user_hash, max_age=ONE_MONTH)
@@ -227,7 +226,7 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
 
 @app.post("/user/team/join", response_model=schemas.User)
 async def user_join_team(team_hash: str, db: Session = Depends(get_db),
-                    user_hash: str | None = Cookie(default=None)):
+                         user_hash: str | None = Cookie(default=None)):
     db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
 
     return db_user
