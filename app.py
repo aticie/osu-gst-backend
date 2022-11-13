@@ -68,6 +68,18 @@ def get_db():
         db.close()
 
 
+def user_is_admin(db: Session = Depends(get_db), user_hash: str | None = Cookie(default=None)):
+    db_user = crud.get_user(db=db, user_hash=user_hash)
+    if not db_user.is_admin:
+        raise HTTPException(403, "You require admin privileges.")
+
+
+def user_is_not_banned(db: Session = Depends(get_db), user_hash: str | None = Cookie(default=None)):
+    db_user = crud.get_user(db=db, user_hash=user_hash)
+    if db_user.is_banned:
+        raise HTTPException(403, "You are banned.")
+
+
 def hash_with_secret(string_to_be_hashed: str) -> str:
     hash_secret = os.getenv("SECRET")
     return hashlib.md5(f"{string_to_be_hashed}+{hash_secret}".encode()).hexdigest()
@@ -215,7 +227,7 @@ async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     return teams
 
 
-@app.post("/team", response_model=schemas.Team)
+@app.post("/team", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned)])
 async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
                       user_hash: str | None = Cookie(default=None)):
     team_hash = hash_with_random(user_hash)
@@ -224,7 +236,7 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
     return team
 
 
-@app.post("/user/team/join", response_model=schemas.User)
+@app.post("/user/team/join", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
 async def user_join_team(team_hash: str, db: Session = Depends(get_db),
                          user_hash: str | None = Cookie(default=None)):
     db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
@@ -232,7 +244,7 @@ async def user_join_team(team_hash: str, db: Session = Depends(get_db),
     return db_user
 
 
-@app.delete("/team", response_model=schemas.User)
+@app.delete("/team", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
 async def leave_team(db: Session = Depends(get_db),
                      user_hash: str | None = Cookie(default=None)):
     db_user = crud.leave_team(db=db, user_hash=user_hash)
@@ -240,7 +252,7 @@ async def leave_team(db: Session = Depends(get_db),
     return db_user
 
 
-@app.post("/team/invite", response_model=schemas.Invite)
+@app.post("/team/invite", response_model=schemas.Invite, dependencies=[Depends(user_is_not_banned)])
 async def team_create_invite(other_user_osu_id: int,
                              db: Session = Depends(get_db),
                              user_hash: str | None = Cookie(default=None)):
@@ -254,14 +266,14 @@ async def team_cancel_invite(other_user_osu_id: int,
     return crud.cancel_invite(db=db, user_hash=user_hash, invited_user_osu_id=other_user_osu_id)
 
 
-@app.delete("/user/invite", response_model=schemas.User)
+@app.delete("/user/invite", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
 async def user_decline_invite(team_hash: str,
                               db: Session = Depends(get_db),
                               user_hash: str | None = Cookie(default=None)):
     return crud.decline_invite(db=db, user_hash=user_hash, team_hash=team_hash)
 
 
-@app.post("/avatar/upload")
+@app.post("/avatar/upload", dependencies=[Depends(user_is_not_banned)])
 async def create_avatar(request: Request,
                         file: UploadFile,
                         db: Session = Depends(get_db),
@@ -283,7 +295,7 @@ async def create_avatar(request: Request,
     return crud.create_avatar(db=db, user_hash=user_hash, img_url=img_url)
 
 
-@app.post("/user/ban")
+@app.post("/user/ban", dependencies=[Depends(user_is_admin)])
 async def ban_user(user_osu_id: int,
                    db: Session = Depends(get_db),
                    user_hash: str | None = Cookie(default=None)):

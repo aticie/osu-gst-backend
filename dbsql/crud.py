@@ -95,9 +95,8 @@ def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash
         raise HTTPException(400, "User is already on a team.")
     db_user_invites = get_user_invites(db=db, user_hash=user_hash)
     db_team = models.Team(**team.dict(), team_hash=team_hash)
-    if db_user_invites:
-        for db_invite in db_user_invites:
-            db.delete(db_invite)
+    for db_invite in db_user_invites:
+        db.delete(db_invite)
     db.add(db_team)
     db.commit()
     db.refresh(db_team)
@@ -187,6 +186,12 @@ def ban_user(db: Session, user_hash: str, user_osu_id: int):
         raise HTTPException(403, "Unauthorized for banning a user.")
 
     user_to_be_banned = get_user_by_osu_id(db=db, osu_id=user_osu_id)
+    if user_to_be_banned.team_hash:
+        team = get_team(db=db, team_hash=user_to_be_banned.team_hash)
+        invites = get_team_invites(db=db, team_hash=user_to_be_banned.team_hash)
+        for invite in invites:
+            db.delete(invite)
+        db.delete(team)
     user_to_be_banned.is_banned = True
     db.commit()
     return user_to_be_banned
