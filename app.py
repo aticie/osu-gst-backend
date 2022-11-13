@@ -179,7 +179,7 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
                                               redirect_uri=os.getenv("REDIRECT_URI") + "/discord-identify",
                                               token_endpoint=r"https://discord.com/api/oauth2/token")
     me_result = await get_me_data(access_token=access_token,
-                                  me_endpoint=r"https://discord.com/api/10/users/@me")
+                                  me_endpoint=r"https://discord.com/api/v10/users/@me")
     user_id = me_result["id"]
     username = me_result["username"]
     discriminator = me_result["discriminator"]
