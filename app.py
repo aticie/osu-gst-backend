@@ -86,6 +86,9 @@ def user_is_admin(db: Session = Depends(get_db), user_hash: str | None = Cookie(
 
 
 def user_is_not_admin(db: Session = Depends(get_db), user_hash: str | None = Cookie(default=None)):
+    if os.getenv("DEV"):
+        return
+
     db_user = crud.get_user(db=db, user_hash=user_hash)
     if db_user.is_admin:
         raise HTTPException(403, "You are an admin, not a player.")
