@@ -273,7 +273,7 @@ async def user_decline_invite(team_hash: str,
     return crud.decline_invite(db=db, user_hash=user_hash, team_hash=team_hash)
 
 
-@app.post("/avatar/upload", dependencies=[Depends(user_is_not_banned)])
+@app.post("/avatar/upload", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned)])
 async def create_avatar(request: Request,
                         file: UploadFile,
                         db: Session = Depends(get_db),
@@ -295,7 +295,7 @@ async def create_avatar(request: Request,
     return crud.create_avatar(db=db, user_hash=user_hash, img_url=img_url)
 
 
-@app.post("/user/ban", dependencies=[Depends(user_is_admin)])
+@app.post("/user/ban", dependencies=[Depends(user_is_admin)], response_model=schemas.User)
 async def ban_user(user_osu_id: int,
                    db: Session = Depends(get_db)):
     return crud.ban_user(db=db, user_osu_id=user_osu_id)
