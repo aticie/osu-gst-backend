@@ -4,7 +4,7 @@ import uuid
 from typing import List, Optional
 
 import aiohttp
-from fastapi import Depends, FastAPI, HTTPException, Cookie, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, Cookie, UploadFile, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.requests import Request
@@ -68,10 +68,28 @@ def get_db():
         db.close()
 
 
+def verify_content_length_exists(content_length: str | None = Header()):
+    if not content_length:
+        raise HTTPException(411)
+
+
+def verify_content_less_than_max_size(content_length: str = Header()):
+    max_upload_size = 10000000  # 10 MB
+    file_size = int(content_length)
+    if file_size > max_upload_size:
+        raise HTTPException(413)
+
+
 def user_is_admin(db: Session = Depends(get_db), user_hash: str | None = Cookie(default=None)):
     db_user = crud.get_user(db=db, user_hash=user_hash)
     if not db_user.is_admin:
         raise HTTPException(403, "You require admin privileges.")
+
+
+def user_is_not_admin(db: Session = Depends(get_db), user_hash: str | None = Cookie(default=None)):
+    db_user = crud.get_user(db=db, user_hash=user_hash)
+    if db_user.is_admin:
+        raise HTTPException(403, "You are an admin, not a player.")
 
 
 def user_is_not_banned(db: Session = Depends(get_db), user_hash: str | None = Cookie(default=None)):
@@ -227,7 +245,7 @@ async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_
     return teams
 
 
-@app.post("/team", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned)])
+@app.post("/team", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned), Depends(user_is_not_admin)])
 async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
                       user_hash: str | None = Cookie(default=None)):
     team_hash = hash_with_random(user_hash)
@@ -273,18 +291,12 @@ async def user_decline_invite(team_hash: str,
     return crud.decline_invite(db=db, user_hash=user_hash, team_hash=team_hash)
 
 
-@app.post("/avatar/upload", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned)])
-async def create_avatar(request: Request,
-                        file: UploadFile,
+@app.post("/avatar/upload", response_model=schemas.Team,
+          dependencies=[Depends(user_is_not_banned), Depends(verify_content_length_exists),
+                        Depends(verify_content_less_than_max_size)])
+async def create_avatar(file: UploadFile,
                         db: Session = Depends(get_db),
                         user_hash: str | None = Cookie(default=None)):
-    max_upload_size = 10000000  # 10 MB
-    if 'content-length' not in request.headers:
-        raise HTTPException(411)
-    content_length = int(request.headers['content-length'])
-    if content_length > max_upload_size:
-        raise HTTPException(413)
-
     if not check_image_is_in_formats(image_file=file.file,
                                      formats=['png', 'jpg', 'jpeg', 'gif']):
         raise HTTPException(400,
