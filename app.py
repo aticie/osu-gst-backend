@@ -13,6 +13,7 @@ from starlette.responses import RedirectResponse
 from dbsql import crud, models, schemas
 from dbsql.database import SessionLocal, engine
 from dbsql.schemas import OsuUserCreate, DiscordUser
+from utils.discord import user_join_guild
 from utils.image import check_image_is_in_formats
 
 ONE_MONTH = 2592000
@@ -82,8 +83,7 @@ async def oauth2_authorization(code: str,
                                client_id: str,
                                client_secret: str,
                                redirect_uri: str,
-                               token_endpoint: str,
-                               me_endpoint: str):
+                               token_endpoint: str):
     token_body = {
         "code": code,
         "client_id": client_id,
@@ -100,27 +100,26 @@ async def oauth2_authorization(code: str,
             raise HTTPException(500,
                                 "Something went wrong with the authentication, didn't get access token...")
 
-        me_result = await get_me_data(access_token, me_endpoint, sess)
-
-        return me_result
+    return access_token
 
 
-async def get_me_data(access_token, me_endpoint, sess):
+async def get_me_data(access_token, me_endpoint):
     headers = {"Authorization": f"Bearer {access_token}"}
-    async with sess.get(me_endpoint, headers=headers) as resp:
-        me_result = await resp.json()
+    async with aiohttp.ClientSession(headers=headers) as sess:
+        async with sess.get(me_endpoint) as resp:
+            me_result = await resp.json()
 
     return me_result
 
 
 @app.get("/osu-identify", response_class=RedirectResponse)
 async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResponse:
-    me_result = await oauth2_authorization(code=code,
+    access_token = await oauth2_authorization(code=code,
                                            client_id=os.getenv("OSU_CLIENT_ID"),
                                            client_secret=os.getenv("OSU_CLIENT_SECRET"),
                                            redirect_uri=os.getenv("REDIRECT_URI") + "/osu-identify",
-                                           token_endpoint=r"https://osu.ppy.sh/oauth/token",
-                                           me_endpoint=r"https://osu.ppy.sh/api/v2/me/osu")
+                                           token_endpoint=r"https://osu.ppy.sh/oauth/token")
+    me_result = await get_me_data(access_token, r"https://osu.ppy.sh/api/v2/me/osu")
     osu_id = me_result["id"]
     user_hash = hash_with_secret(osu_id)
     redirect = RedirectResponse(frontend_homepage)
@@ -163,13 +162,13 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
 @app.get("/discord-identify", response_class=RedirectResponse)
 async def discord_identify(code: str, db: Session = Depends(get_db),
                            user_hash: str | None = Cookie(default=None)):
-    me_result = await oauth2_authorization(code=code,
+    access_token = await oauth2_authorization(code=code,
                                            client_id=os.getenv("DISCORD_CLIENT_ID"),
                                            client_secret=os.getenv("DISCORD_CLIENT_SECRET"),
                                            redirect_uri=os.getenv("REDIRECT_URI") + "/discord-identify",
-                                           token_endpoint=r"https://discord.com/api/oauth2/token",
-                                           me_endpoint=r"https://discord.com/api/v10/users/@me")
-
+                                           token_endpoint=r"https://discord.com/api/oauth2/token")
+    me_result = await get_me_data(access_token=access_token,
+                                  me_endpoint=r"https://osu.ppy.sh/api/v2/me/osu")
     user_id = me_result["id"]
     username = me_result["username"]
     discriminator = me_result["discriminator"]
@@ -180,6 +179,7 @@ async def discord_identify(code: str, db: Session = Depends(get_db),
                        discord_tag=f"{username}#{discriminator}",
                        )
     crud.upgrade_to_discord_user(db=db, user_hash=user_hash, user=user)
+    await user_join_guild(user_id=user_id, access_token=access_token)
 
     redirect = RedirectResponse(frontend_homepage)
     redirect.set_cookie(key="user", value=user_hash, max_age=ONE_MONTH)

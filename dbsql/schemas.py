@@ -48,6 +48,8 @@ class DiscordUser(UserBase):
 
 
 class UserCreate(OsuUser, DiscordUser):
+    is_banned: bool
+    is_admin: bool
     ...
 
 

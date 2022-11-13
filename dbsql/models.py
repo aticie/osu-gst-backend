@@ -19,6 +19,8 @@ class User(Base):
     osu_linked = Column(Boolean, default=False)
     bws_rank = Column(Integer)
     badges = Column(Integer)
+    is_banned = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False)
     team_hash = Column(String, ForeignKey("teams.team_hash"))
 
     team = relationship("Team", back_populates="players")
