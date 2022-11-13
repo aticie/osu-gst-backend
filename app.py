@@ -13,7 +13,6 @@ from starlette.responses import RedirectResponse
 from dbsql import crud, models, schemas
 from dbsql.database import SessionLocal, engine
 from dbsql.schemas import OsuUserCreate, DiscordUser
-from utils.discord import user_join_guild
 from utils.image import check_image_is_in_formats
 
 ONE_MONTH = 2592000
