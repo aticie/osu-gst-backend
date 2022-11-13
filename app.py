@@ -128,10 +128,11 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
 
     global_rank = me_result["statistics"]["global_rank"]
     badges = me_result["badges"]
-    
+
     num_badges = 0
     for badge in badges:
-        description = badge["description"].lower()
+        badge_desc: str = badge["description"]
+        description = badge_desc.casefold()
 
         # If description contains any word that is in filter
         if any(filter_word in description for filter_word in BADGE_WORD_FILTER):
@@ -205,9 +206,9 @@ async def read_team_invites(team_hash: str, db: Session = Depends(get_db)):
 
 
 @app.get("/users", response_model=List[schemas.User])
-async def read_users(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
-    user = crud.get_users(db=db, skip=skip, limit=limit)
-    return user
+async def read_users(db: Session = Depends(get_db)):
+    users = crud.get_users(db=db)
+    return users
 
 
 @app.get("/teams", response_model=List[schemas.Team])
@@ -225,8 +226,8 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
     return team
 
 
-@app.post("/team/join", response_model=schemas.User)
-async def join_team(team_hash: str, db: Session = Depends(get_db),
+@app.post("/user/team/join", response_model=schemas.User)
+async def user_join_team(team_hash: str, db: Session = Depends(get_db),
                     user_hash: str | None = Cookie(default=None)):
     db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
 
@@ -242,10 +243,24 @@ async def leave_team(db: Session = Depends(get_db),
 
 
 @app.post("/team/invite", response_model=schemas.Invite)
-async def create_invite(other_user_osu_id: int,
-                        db: Session = Depends(get_db),
-                        user_hash: str | None = Cookie(default=None)):
+async def team_create_invite(other_user_osu_id: int,
+                             db: Session = Depends(get_db),
+                             user_hash: str | None = Cookie(default=None)):
     return crud.create_invite(db=db, team_owner_hash=user_hash, invited_user_osu_id=other_user_osu_id)
+
+
+@app.post("/team/invite/cancel", response_model=Optional[List[schemas.Invite]])
+async def team_cancel_invite(other_user_osu_id: int,
+                             db: Session = Depends(get_db),
+                             user_hash: str | None = Cookie(default=None)):
+    return crud.cancel_invite(db=db, user_hash=user_hash, invited_user_osu_id=other_user_osu_id)
+
+
+@app.post("/user/invite/decline", response_model=schemas.User)
+async def user_decline_invite(team_hash: str,
+                              db: Session = Depends(get_db),
+                              user_hash: str | None = Cookie(default=None)):
+    return crud.decline_invite(db=db, user_hash=user_hash, team_hash=team_hash)
 
 
 @app.post("/avatar/upload")
