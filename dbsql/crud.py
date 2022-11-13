@@ -179,3 +179,14 @@ def cancel_invite(db: Session, user_hash: str, invited_user_osu_id: int):
     db.commit()
     team_invites = get_team_invites(db=db, team_hash=inviter_user.team_hash)
     return team_invites
+
+
+def ban_user(db: Session, user_hash: str, user_osu_id: int):
+    admin_user = get_user(db=db, user_hash=user_hash)
+    if not admin_user.is_admin:
+        raise HTTPException(403, "Unauthorized for banning a user.")
+
+    user_to_be_banned = get_user_by_osu_id(db=db, osu_id=user_osu_id)
+    user_to_be_banned.is_banned = True
+    db.commit()
+    return user_to_be_banned

@@ -13,7 +13,7 @@ from starlette.responses import RedirectResponse
 from dbsql import crud, models, schemas
 from dbsql.database import SessionLocal, engine
 from dbsql.schemas import OsuUserCreate, DiscordUser
-from utils.image import check_image_is_in_formats
+from utils.image import check_image_is_in_formats, upload_binary_file_to_imgur
 
 ONE_MONTH = 2592000
 BADGE_WORD_FILTER = [
@@ -283,15 +283,8 @@ async def create_avatar(request: Request,
     return crud.create_avatar(db=db, user_hash=user_hash, img_url=img_url)
 
 
-async def upload_binary_file_to_imgur(file: UploadFile, imgur_client_id: str):
-    headers = {"Authorization": f"Client-ID {imgur_client_id}"}
-    await file.seek(0)
-    contents = await file.read()
-    data = {"image": contents,
-            "type": "file"}
-    async with aiohttp.ClientSession(headers=headers) as sess:
-        async with sess.post("https://api.imgur.com/3/upload", data=data) as resp:
-            response = await resp.json()
-    if response["status"] != 200:
-        raise HTTPException(response["status"])
-    return response["data"]
+@app.post("/user/ban")
+async def ban_user(user_osu_id: int,
+                   db: Session = Depends(get_db),
+                   user_hash: str | None = Cookie(default=None)):
+    return crud.ban_user(db=db, user_hash=user_hash, user_osu_id=user_osu_id)
