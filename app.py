@@ -320,3 +320,9 @@ async def create_avatar(file: UploadFile,
 async def ban_user(user_osu_id: int,
                    db: Session = Depends(get_db)):
     return crud.ban_user(db=db, user_osu_id=user_osu_id)
+
+
+@app.delete("/user/ban", dependencies=[Depends(user_is_admin)], response_model=schemas.User)
+async def unban_user(user_osu_id: int,
+                     db: Session = Depends(get_db)):
+    return crud.unban_user(db=db, user_osu_id=user_osu_id)
