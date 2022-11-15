@@ -203,3 +203,10 @@ def ban_user(db: Session, user_osu_id: int):
     user_to_be_banned.is_banned = True
     db.commit()
     return user_to_be_banned
+
+
+def unban_user(db: Session, user_osu_id: int):
+    user_to_be_unbanned = get_user_by_osu_id(db=db, osu_id=user_osu_id)
+    user_to_be_unbanned.is_banned = False
+    db.commit()
+    return user_to_be_unbanned

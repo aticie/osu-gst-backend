@@ -86,6 +86,9 @@ def user_is_admin(db: Session = Depends(get_db), user_hash: str | None = Cookie(
 
 
 def user_is_not_admin(db: Session = Depends(get_db), user_hash: str | None = Cookie(default=None)):
+    if os.getenv("DEV"):
+        return
+
     db_user = crud.get_user(db=db, user_hash=user_hash)
     if db_user.is_admin:
         raise HTTPException(403, "You are an admin, not a player.")
@@ -151,7 +154,13 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
     osu_id = me_result["id"]
     user_hash = hash_with_secret(osu_id)
     redirect = RedirectResponse(frontend_homepage)
-    redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH)
+
+    db_user = crud.get_user_by_osu_id(db=db, osu_id=osu_id)
+    if db_user:
+        redirect.set_cookie(key="user_hash", value=db_user.user_hash, max_age=ONE_MONTH)
+        return redirect
+    else:
+        redirect.set_cookie(key="user_hash", value=user_hash, max_age=ONE_MONTH)
 
     global_rank = me_result["statistics"]["global_rank"]
     badges = me_result["badges"]
@@ -169,10 +178,6 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
 
     num = global_rank if global_rank and global_rank >= 0 else 0
     bws_rank = round(num ** (0.9937 ** (num_badges ** 2)))
-
-    db_user = crud.get_user(db=db, user_hash=user_hash)
-    if db_user:
-        return redirect
 
     user = OsuUserCreate(osu_id=osu_id,
                          osu_username=me_result["username"],
@@ -222,7 +227,7 @@ async def read_me(db: Session = Depends(get_db),
 
 @app.put("/users/me", response_model=schemas.User)
 async def unlink_user_discord(db: Session = Depends(get_db),
-                            user_hash: str = Cookie(default=None)):
+                              user_hash: str = Cookie(default=None)):
     user = crud.downgrade_from_discord_user(db=db, user_hash=user_hash)
     return user
 
@@ -317,3 +322,9 @@ async def create_avatar(file: UploadFile,
 async def ban_user(user_osu_id: int,
                    db: Session = Depends(get_db)):
     return crud.ban_user(db=db, user_osu_id=user_osu_id)
+
+
+@app.delete("/user/ban", dependencies=[Depends(user_is_admin)], response_model=schemas.User)
+async def unban_user(user_osu_id: int,
+                     db: Session = Depends(get_db)):
+    return crud.unban_user(db=db, user_osu_id=user_osu_id)
