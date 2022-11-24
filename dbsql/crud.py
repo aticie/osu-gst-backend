@@ -1,3 +1,4 @@
+import datetime
 from typing import List, Optional
 
 from fastapi import HTTPException
@@ -187,6 +188,7 @@ def remove_team_from_lobby(db: Session, user_hash: str):
     db.refresh(db_team)
     return db_team
 
+
 def decline_invite(db: Session, user_hash: str, team_hash: str):
     db_invite = get_invite(db=db, user_hash=user_hash, team_hash=team_hash)
     if not db_invite:
@@ -227,3 +229,15 @@ def unban_user(db: Session, user_osu_id: int):
     user_to_be_unbanned.is_banned = False
     db.commit()
     return user_to_be_unbanned
+
+
+def create_lobby(db: Session, referee_hash: str,
+                 lobby_name: str, lobby_time: datetime.datetime):
+
+    db_lobby = models.QualifierLobby(lobby_name=lobby_name, lobby_time=lobby_time,
+                                      referee_hash=referee_hash)
+    db.add(db_lobby)
+    db.commit()
+    db.refresh(db_lobby)
+
+    return db_lobby

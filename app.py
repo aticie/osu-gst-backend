@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import os
 import uuid
@@ -273,13 +274,13 @@ async def user_join_team(team_hash: str, db: Session = Depends(get_db),
     return db_user
 
 
-@app.post("/user/lobby/join", dependencies=[Depends(user_is_admin)], response_model=schemas.User)
+@app.post("/user/lobby/join", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
 async def ban_user(lobby_id: int, db: Session = Depends(get_db),
                    user_hash: str | None = Cookie(default=None)):
     return crud.add_team_to_lobby(db=db, user_hash=user_hash, lobby_id=lobby_id)
 
 
-@app.post("/user/lobby/leave", dependencies=[Depends(user_is_admin)], response_model=schemas.User)
+@app.post("/user/lobby/leave", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
 async def ban_user(db: Session = Depends(get_db),
                    user_hash: str | None = Cookie(default=None)):
     return crud.remove_team_from_lobby(db=db, user_hash=user_hash)
@@ -340,3 +341,8 @@ async def ban_user(user_osu_id: int,
 async def unban_user(user_osu_id: int,
                      db: Session = Depends(get_db)):
     return crud.unban_user(db=db, user_osu_id=user_osu_id)
+
+
+@app.post("/lobby/create", dependencies=[Depends(user_is_admin)], response_model=schemas.Lobby)
+async def ban_user(referee_hash: str, lobby_time: datetime.datetime, lobby_name: str, db: Session = Depends(get_db)):
+    return crud.create_lobby(db=db, referee_hash=referee_hash, lobby_time=lobby_time, lobby_name=lobby_name)

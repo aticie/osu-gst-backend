@@ -1,3 +1,4 @@
+import datetime
 from typing import List
 
 from pydantic import BaseModel, validator
@@ -87,3 +88,10 @@ class Invite(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class Lobby(BaseModel):
+    id: int
+    lobby_name: str
+    referee: User
+    date: datetime.datetime
