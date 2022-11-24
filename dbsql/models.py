@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -32,6 +32,8 @@ class Team(Base):
     team_hash = Column(String, primary_key=True, index=True)
     title = Column(String, index=True, unique=True)
     avatar_url = Column(String)
+    lobby_id = Column(Integer, ForeignKey("lobbies.id"))
+    lobby = relationship("QualifierLobby", back_populates="teams")
 
     players = relationship("User", back_populates="team")
 
@@ -47,3 +49,15 @@ class Invite(Base):
     team = relationship("Team")
     inviter = relationship("User", foreign_keys=[inviter_user_hash])
     invited = relationship("User", foreign_keys=[invited_user_hash])
+
+
+class QualifierLobby(Base):
+    __tablename__ = "lobbies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lobby_name = Column(String)
+    referee_hash = Column(String, ForeignKey("users.user_hash"), nullable=True)
+    referee = relationship("User", foreign_keys=[referee_hash])
+
+    date = Column(DateTime)
+    teams = relationship("Team", back_populates="lobby")

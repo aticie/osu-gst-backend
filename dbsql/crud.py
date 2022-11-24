@@ -170,6 +170,23 @@ def create_avatar(db: Session, user_hash: str, img_url: str):
     return db_team
 
 
+def add_team_to_lobby(db: Session, user_hash: str, lobby_id: int):
+    db_user = get_user(db=db, user_hash=user_hash)
+    db_team = get_team(db=db, team_hash=db_user.team_hash)
+    db_team.lobby_id = lobby_id
+    db.commit()
+    db.refresh(db_team)
+    return db_team
+
+
+def remove_team_from_lobby(db: Session, user_hash: str):
+    db_user = get_user(db=db, user_hash=user_hash)
+    db_team = get_team(db=db, team_hash=db_user.team_hash)
+    db_team.lobby_id = None
+    db.commit()
+    db.refresh(db_team)
+    return db_team
+
 def decline_invite(db: Session, user_hash: str, team_hash: str):
     db_invite = get_invite(db=db, user_hash=user_hash, team_hash=team_hash)
     if not db_invite:

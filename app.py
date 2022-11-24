@@ -273,6 +273,18 @@ async def user_join_team(team_hash: str, db: Session = Depends(get_db),
     return db_user
 
 
+@app.post("/user/lobby/join", dependencies=[Depends(user_is_admin)], response_model=schemas.User)
+async def ban_user(lobby_id: int, db: Session = Depends(get_db),
+                   user_hash: str | None = Cookie(default=None)):
+    return crud.add_team_to_lobby(db=db, user_hash=user_hash, lobby_id=lobby_id)
+
+
+@app.post("/user/lobby/leave", dependencies=[Depends(user_is_admin)], response_model=schemas.User)
+async def ban_user(db: Session = Depends(get_db),
+                   user_hash: str | None = Cookie(default=None)):
+    return crud.remove_team_from_lobby(db=db, user_hash=user_hash)
+
+
 @app.delete("/team", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
 async def leave_team(db: Session = Depends(get_db),
                      user_hash: str | None = Cookie(default=None)):
