@@ -32,6 +32,10 @@ def get_team_invites(db: Session, team_hash: str) -> List[models.Invite]:
     return db.query(models.Invite).filter(models.Invite.team_hash == team_hash).all()
 
 
+def get_lobbies(db: Session):
+    return db.query(models.QualifierLobby).order_by(func.lower(models.QualifierLobby.date)).all()
+
+
 def create_osu_user(db: Session, user: schemas.OsuUserCreate) -> models.User:
     db_user = models.User(**user.dict(), osu_linked=True)
     db.add(db_user)
