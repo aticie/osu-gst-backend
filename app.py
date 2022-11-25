@@ -351,4 +351,4 @@ async def create_lobby(referee_hash: str, lobby_time: datetime.datetime, lobby_n
 
 @app.get("/lobby", dependencies=[Depends(user_is_not_banned)], response_model=Optional[List[schemas.Lobby]])
 async def get_lobbies(db: Session = Depends(get_db)):
-    return crud.get_lobbies()
+    return crud.get_lobbies(db=db)
