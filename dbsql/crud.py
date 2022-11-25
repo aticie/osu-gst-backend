@@ -238,8 +238,8 @@ def unban_user(db: Session, user_osu_id: int):
 def create_lobby(db: Session, referee_osu_id: int,
                  lobby_name: str, lobby_time: datetime.datetime):
     referee_db_user = get_user_by_osu_id(db=db, osu_id=referee_osu_id)
-    db_lobby = models.QualifierLobby(lobby_name=lobby_name, lobby_time=lobby_time,
-                                      referee_hash=referee_db_user.user_hash)
+    db_lobby = models.QualifierLobby(lobby_name=lobby_name, date=lobby_time,
+                                     referee_hash=referee_db_user.user_hash)
     db.add(db_lobby)
     db.commit()
     db.refresh(db_lobby)
