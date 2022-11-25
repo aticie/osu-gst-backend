@@ -33,7 +33,7 @@ def get_team_invites(db: Session, team_hash: str) -> List[models.Invite]:
 
 
 def get_lobbies(db: Session):
-    return db.query(models.QualifierLobby).order_by(func.lower(models.QualifierLobby.date)).all()
+    return db.query(models.QualifierLobby).order_by(models.QualifierLobby.date).all()
 
 
 def create_osu_user(db: Session, user: schemas.OsuUserCreate) -> models.User:
