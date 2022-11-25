@@ -344,9 +344,9 @@ async def unban_user(user_osu_id: int,
 
 
 @app.post("/lobby/create", dependencies=[Depends(user_is_admin)], response_model=schemas.Lobby)
-async def create_lobby(referee_hash: str, lobby_time: datetime.datetime, lobby_name: str,
+async def create_lobby(referee_osu_id: int, lobby_time: datetime.datetime, lobby_name: str,
                        db: Session = Depends(get_db)):
-    return crud.create_lobby(db=db, referee_hash=referee_hash, lobby_time=lobby_time, lobby_name=lobby_name)
+    return crud.create_lobby(db=db, referee_osu_id=referee_osu_id, lobby_time=lobby_time, lobby_name=lobby_name)
 
 
 @app.get("/lobby", dependencies=[Depends(user_is_not_banned)], response_model=Optional[List[schemas.Lobby]])
