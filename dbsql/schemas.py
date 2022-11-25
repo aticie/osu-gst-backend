@@ -95,6 +95,7 @@ class Lobby(BaseModel):
     lobby_name: str
     referee: User
     date: datetime.datetime
+    teams: List[Team]
 
     class Config:
         orm_mode = True
