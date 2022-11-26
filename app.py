@@ -349,6 +349,6 @@ async def create_lobby(referee_osu_id: int, lobby_time: datetime.datetime, lobby
     return crud.create_lobby(db=db, referee_osu_id=referee_osu_id, lobby_time=lobby_time, lobby_name=lobby_name)
 
 
-@app.get("/lobby", dependencies=[Depends(user_is_not_banned)], response_model=Optional[List[schemas.Lobby]])
+@app.get("/lobby", response_model=Optional[List[schemas.Lobby]])
 async def get_lobbies(db: Session = Depends(get_db)):
     return crud.get_lobbies(db=db)
