@@ -274,7 +274,7 @@ async def user_join_team(team_hash: str, db: Session = Depends(get_db),
     return db_user
 
 
-@app.post("/user/lobby/join", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
+@app.post("/user/lobby/join", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned)])
 async def add_user_to_lobby(lobby_id: int, db: Session = Depends(get_db),
                             user_hash: str | None = Cookie(default=None)):
     return crud.add_team_to_lobby(db=db, user_hash=user_hash, lobby_id=lobby_id)
