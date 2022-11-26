@@ -178,6 +178,10 @@ def create_avatar(db: Session, user_hash: str, img_url: str):
 def add_team_to_lobby(db: Session, user_hash: str, lobby_id: int):
     db_user = get_user(db=db, user_hash=user_hash)
     db_team = get_team(db=db, team_hash=db_user.team_hash)
+    if db_team is None:
+        raise HTTPException(401, "You are not in a team.")
+    if len(db_team.players) < 2:
+        raise HTTPException(401, "Your team is incomplete.")
     db_team.lobby_id = lobby_id
     db.commit()
     db.refresh(db_team)
