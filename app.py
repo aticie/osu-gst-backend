@@ -280,7 +280,7 @@ async def add_user_to_lobby(lobby_id: int, db: Session = Depends(get_db),
     return crud.add_team_to_lobby(db=db, user_hash=user_hash, lobby_id=lobby_id)
 
 
-@app.post("/user/lobby/leave", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
+@app.post("/user/lobby/leave", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned)])
 async def leave_from_lobby(db: Session = Depends(get_db),
                            user_hash: str | None = Cookie(default=None)):
     return crud.remove_team_from_lobby(db=db, user_hash=user_hash)
