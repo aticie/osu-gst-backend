@@ -4,6 +4,7 @@ from typing import List, Optional
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+import pytz
 
 from . import models, schemas
 
@@ -191,6 +192,18 @@ def add_team_to_lobby(db: Session, user_hash: str, lobby_id: int):
     lobby_teams = get_lobby_player_count(db=db, lobby_id=lobby_id)
     if lobby_teams == 6:
         raise HTTPException(401, "Lobby is full!")
+
+    db_lobby = get_lobby(db=db, lobby_id=lobby_id)
+
+    time_now = datetime.datetime.utcnow()
+    time_now_utc = pytz.utc.localize(time_now)
+    timezone = pytz.timezone("Asia/Singapore")
+    time_now_in_singapore = timezone.normalize(time_now_utc)
+    lobby_date = timezone.localize(db_lobby.date)
+
+    if lobby_date < time_now_in_singapore:
+        raise HTTPException(401, "Lobby is closed.")
+
     db_user = get_user(db=db, user_hash=user_hash)
     db_team = get_team(db=db, team_hash=db_user.team_hash)
     if db_team is None:
