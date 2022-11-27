@@ -16,6 +16,10 @@ def get_user_by_osu_id(db: Session, osu_id: int) -> models.User:
     return db.query(models.User).filter(models.User.osu_id == osu_id).first()
 
 
+def get_user_by_osu_username(db: Session, osu_username: str) -> models.User:
+    return db.query(models.User).filter(models.User.osu_username == osu_username).first()
+
+
 def get_user_by_discord_id(db: Session, discord_id: str) -> models.User:
     return db.query(models.User).filter(models.User.discord_id == discord_id).first()
 
@@ -32,8 +36,33 @@ def get_team_invites(db: Session, team_hash: str) -> List[models.Invite]:
     return db.query(models.Invite).filter(models.Invite.team_hash == team_hash).all()
 
 
-def get_lobbies(db: Session):
+def get_lobbies(db: Session) -> List[models.QualifierLobby]:
     return db.query(models.QualifierLobby).order_by(models.QualifierLobby.date).all()
+
+
+def get_lobby_player_count(db: Session, lobby_id: int):
+    return db.query(models.Team).filter(models.Team.lobby_id == lobby_id).count()
+
+
+def get_teams(db: Session, skip: int = 0, limit: int = 100) -> List[models.Team]:
+    return db.query(models.Team).offset(skip).limit(limit).all()
+
+
+def get_team(db: Session, team_hash: str) -> models.Team:
+    return db.query(models.Team).filter(models.Team.team_hash == team_hash).first()
+
+
+def count_teams(db: Session) -> int:
+    return db.query(models.Team).count()
+
+
+def get_invite(db: Session, team_hash: str, user_hash: str) -> models.Invite:
+    return db.query(models.Invite).filter(
+        models.Invite.team_hash == team_hash, models.Invite.invited_user_hash == user_hash).first()
+
+
+def get_lobby(db: Session, lobby_id: int) -> models.QualifierLobby:
+    return db.query(models.QualifierLobby).filter(models.QualifierLobby.id == lobby_id).first()
 
 
 def create_osu_user(db: Session, user: schemas.OsuUserCreate) -> models.User:
@@ -89,23 +118,6 @@ def downgrade_from_discord_user(db: Session, user_hash: str) -> models.User:
     return db_user
 
 
-def get_teams(db: Session, skip: int = 0, limit: int = 100) -> List[models.Team]:
-    return db.query(models.Team).offset(skip).limit(limit).all()
-
-
-def get_team(db: Session, team_hash: str) -> models.Team:
-    return db.query(models.Team).filter(models.Team.team_hash == team_hash).first()
-
-
-def count_teams(db: Session) -> int:
-    return db.query(models.Team).count()
-
-
-def get_invite(db: Session, team_hash: str, user_hash: str) -> models.Invite:
-    return db.query(models.Invite).filter(
-        models.Invite.team_hash == team_hash, models.Invite.invited_user_hash == user_hash).first()
-
-
 def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash: str) -> Optional[models.Team]:
     db_user = get_user(db=db, user_hash=user_hash)
     if db_user.team_hash:
@@ -122,7 +134,7 @@ def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash
     return db_team
 
 
-def add_to_team(db: Session, team_hash: str, user_hash: str):
+def add_player_to_team(db: Session, team_hash: str, user_hash: str):
     db_invite = get_invite(db=db, team_hash=team_hash, user_hash=user_hash)
     if not db_invite:
         raise HTTPException(400, "This invite is for someone else.")
@@ -176,6 +188,9 @@ def create_avatar(db: Session, user_hash: str, img_url: str):
 
 
 def add_team_to_lobby(db: Session, user_hash: str, lobby_id: int):
+    lobby_teams = get_lobby_player_count(db=db, lobby_id=lobby_id)
+    if lobby_teams == 6:
+        raise HTTPException(401, "Lobby is full!")
     db_user = get_user(db=db, user_hash=user_hash)
     db_team = get_team(db=db, team_hash=db_user.team_hash)
     if db_team is None:
@@ -239,12 +254,25 @@ def unban_user(db: Session, user_osu_id: int):
     return user_to_be_unbanned
 
 
-def create_lobby(db: Session, referee_osu_id: int,
-                 lobby_name: str, lobby_time: datetime.datetime):
-    referee_db_user = get_user_by_osu_id(db=db, osu_id=referee_osu_id)
+def create_lobby(db: Session, lobby_name: str, lobby_time: datetime.datetime, referee_osu_username: Optional[str] = None):
+    if referee_osu_username is not None:
+        referee_db_user = get_user_by_osu_username(db=db, osu_username=referee_osu_username)
+        referee_hash = referee_db_user.user_hash
+    else:
+        referee_hash = None
     db_lobby = models.QualifierLobby(lobby_name=lobby_name, date=lobby_time,
-                                     referee_hash=referee_db_user.user_hash)
+                                     referee_hash=referee_hash)
     db.add(db_lobby)
+    db.commit()
+    db.refresh(db_lobby)
+
+    return db_lobby
+
+
+def add_referee_to_lobby(db: Session, lobby_id: int, referee_osu_username: str):
+    db_lobby = get_lobby(db=db, lobby_id=lobby_id)
+    db_referee = get_user_by_osu_username(db=db, osu_username=referee_osu_username)
+    db_lobby.referee_hash = db_referee.user_hash
     db.commit()
     db.refresh(db_lobby)
 

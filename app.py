@@ -269,7 +269,7 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
 @app.post("/user/team/join", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
 async def user_join_team(team_hash: str, db: Session = Depends(get_db),
                          user_hash: str | None = Cookie(default=None)):
-    db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
+    db_user = crud.add_player_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
 
     return db_user
 
@@ -344,11 +344,22 @@ async def unban_user(user_osu_id: int,
 
 
 @app.post("/lobby/create", dependencies=[Depends(user_is_admin)], response_model=schemas.Lobby)
-async def create_lobby(referee_osu_id: int, lobby_time: datetime.datetime, lobby_name: str,
+async def create_lobby(referee_osu_username: Optional[str], lobby_time: datetime.datetime, lobby_name: str,
                        db: Session = Depends(get_db)):
-    return crud.create_lobby(db=db, referee_osu_id=referee_osu_id, lobby_time=lobby_time, lobby_name=lobby_name)
+    return crud.create_lobby(db=db, referee_osu_username=referee_osu_username, lobby_time=lobby_time, lobby_name=lobby_name)
 
 
-@app.get("/lobby", response_model=Optional[List[schemas.Lobby]])
+@app.post("/lobby/add_referee", dependencies=[Depends(user_is_admin)], response_model=schemas.Lobby)
+async def create_lobby(referee_osu_username: str, lobby_id: int,
+                       db: Session = Depends(get_db)):
+    return crud.add_referee_to_lobby(db=db, referee_osu_username=referee_osu_username, lobby_id=lobby_id)
+
+
+@app.get("/lobbies", response_model=Optional[List[schemas.Lobby]])
 async def get_lobbies(db: Session = Depends(get_db)):
     return crud.get_lobbies(db=db)
+
+
+@app.get("/lobby", response_model=Optional[schemas.Lobby])
+async def get_lobby(lobby_id: int, db: Session = Depends(get_db)):
+    return crud.get_lobby(db=db, lobby_id=lobby_id)
