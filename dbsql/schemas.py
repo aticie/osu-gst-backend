@@ -1,5 +1,5 @@
 import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, validator
 
@@ -93,7 +93,7 @@ class Invite(BaseModel):
 class Lobby(BaseModel):
     id: int
     lobby_name: str
-    referee: User
+    referee: Optional[User]
     date: datetime.datetime
     teams: List[Team]
 

@@ -277,3 +277,13 @@ def add_referee_to_lobby(db: Session, lobby_id: int, referee_osu_username: str):
     db.refresh(db_lobby)
 
     return db_lobby
+
+
+def remove_lobby(db: Session, lobby_id: int):
+    db_lobby = get_lobby(db=db, lobby_id=lobby_id)
+    if db_lobby is None:
+        raise HTTPException(401, "Selected lobby does not exist.")
+
+    db.delete(db_lobby)
+    db.commit()
+    return
