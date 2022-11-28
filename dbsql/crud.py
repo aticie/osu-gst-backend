@@ -270,7 +270,7 @@ def unban_user(db: Session, user_osu_id: int):
 
 def create_lobby(db: Session, lobby_name: str, lobby_time: datetime.datetime, referee_osu_username: Optional[str] = None):
     db_lobby = models.QualifierLobby(lobby_name=lobby_name, date=lobby_time,
-                                     referee_hash=referee_osu_username)
+                                     referee=referee_osu_username)
     db.add(db_lobby)
     db.commit()
     db.refresh(db_lobby)
@@ -280,7 +280,7 @@ def create_lobby(db: Session, lobby_name: str, lobby_time: datetime.datetime, re
 
 def add_referee_to_lobby(db: Session, lobby_id: int, referee_osu_username: str):
     db_lobby = get_lobby(db=db, lobby_id=lobby_id)
-    db_lobby.referee_hash = referee_osu_username
+    db_lobby.referee = referee_osu_username
     db.commit()
     db.refresh(db_lobby)
 
