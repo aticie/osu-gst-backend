@@ -93,7 +93,7 @@ class Invite(BaseModel):
 class Lobby(BaseModel):
     id: int
     lobby_name: str
-    referee: Optional[User]
+    referee: Optional[str]
     date: datetime.datetime
     teams: List[Team]
 

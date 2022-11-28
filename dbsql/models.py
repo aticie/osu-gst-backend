@@ -56,7 +56,7 @@ class QualifierLobby(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     lobby_name = Column(String)
-    referee_hash = Column(String, ForeignKey("users.user_hash"), nullable=True)
+    referee_hash = Column(String, nullable=True)
     referee = relationship("User", foreign_keys=[referee_hash])
 
     date = Column(DateTime)
