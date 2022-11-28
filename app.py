@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import os
 import uuid
@@ -239,21 +240,10 @@ async def read_user_invites(db: Session = Depends(get_db),
     return invites
 
 
-@app.get("/team/invites", response_model=List[schemas.Invite])
-async def read_team_invites(team_hash: str, db: Session = Depends(get_db)):
-    return crud.get_team_invites(db=db, team_hash=team_hash)
-
-
 @app.get("/users", response_model=List[schemas.User])
 async def read_users(db: Session = Depends(get_db)):
     users = crud.get_users(db=db)
     return users
-
-
-@app.get("/teams", response_model=List[schemas.Team])
-async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    teams = crud.get_teams(db, skip=skip, limit=limit)
-    return teams
 
 
 @app.post("/team", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned), Depends(user_is_not_admin)])
@@ -265,20 +255,43 @@ async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db),
     return team
 
 
-@app.post("/user/team/join", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
-async def user_join_team(team_hash: str, db: Session = Depends(get_db),
-                         user_hash: str | None = Cookie(default=None)):
-    db_user = crud.add_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
-
-    return db_user
-
-
 @app.delete("/team", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
 async def leave_team(db: Session = Depends(get_db),
                      user_hash: str | None = Cookie(default=None)):
     db_user = crud.leave_team(db=db, user_hash=user_hash)
 
     return db_user
+
+
+@app.get("/team/invites", response_model=List[schemas.Invite])
+async def read_team_invites(team_hash: str, db: Session = Depends(get_db)):
+    return crud.get_team_invites(db=db, team_hash=team_hash)
+
+
+@app.get("/teams", response_model=List[schemas.Team])
+async def read_teams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    teams = crud.get_teams(db, skip=skip, limit=limit)
+    return teams
+
+
+@app.post("/user/team/join", response_model=schemas.User, dependencies=[Depends(user_is_not_banned)])
+async def user_join_team(team_hash: str, db: Session = Depends(get_db),
+                         user_hash: str | None = Cookie(default=None)):
+    db_user = crud.add_player_to_team(db=db, team_hash=team_hash, user_hash=user_hash)
+
+    return db_user
+
+
+@app.post("/user/lobby/join", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned)])
+async def add_user_to_lobby(lobby_id: int, db: Session = Depends(get_db),
+                            user_hash: str | None = Cookie(default=None)):
+    return crud.add_team_to_lobby(db=db, user_hash=user_hash, lobby_id=lobby_id)
+
+
+@app.post("/user/lobby/leave", response_model=schemas.Team, dependencies=[Depends(user_is_not_banned)])
+async def leave_from_lobby(db: Session = Depends(get_db),
+                           user_hash: str | None = Cookie(default=None)):
+    return crud.remove_team_from_lobby(db=db, user_hash=user_hash)
 
 
 @app.post("/team/invite", response_model=schemas.Invite, dependencies=[Depends(user_is_not_banned)])
@@ -328,3 +341,31 @@ async def ban_user(user_osu_id: int,
 async def unban_user(user_osu_id: int,
                      db: Session = Depends(get_db)):
     return crud.unban_user(db=db, user_osu_id=user_osu_id)
+
+
+@app.get("/lobbies", response_model=Optional[List[schemas.Lobby]])
+async def get_lobbies(db: Session = Depends(get_db)):
+    return crud.get_lobbies(db=db)
+
+
+@app.get("/lobby", response_model=Optional[schemas.Lobby])
+async def get_lobby(lobby_id: int, db: Session = Depends(get_db)):
+    return crud.get_lobby(db=db, lobby_id=lobby_id)
+
+
+@app.delete("/lobby", dependencies=[Depends(user_is_admin)], response_model=Optional[schemas.Lobby])
+async def remove_lobby(lobby_id: int, db: Session = Depends(get_db)):
+    return crud.remove_lobby(db=db, lobby_id=lobby_id)
+
+
+@app.post("/lobby/create", dependencies=[Depends(user_is_admin)], response_model=schemas.Lobby)
+async def create_lobby(lobby_time: datetime.datetime, lobby_name: str,
+                       db: Session = Depends(get_db), referee_osu_username: Optional[str] = None):
+    return crud.create_lobby(db=db, referee_osu_username=referee_osu_username, lobby_time=lobby_time,
+                             lobby_name=lobby_name)
+
+
+@app.post("/lobby/add_referee", dependencies=[Depends(user_is_admin)], response_model=schemas.Lobby)
+async def add_referee_to_lobby(referee_osu_username: str, lobby_id: int,
+                               db: Session = Depends(get_db)):
+    return crud.add_referee_to_lobby(db=db, referee_osu_username=referee_osu_username, lobby_id=lobby_id)

@@ -1,4 +1,5 @@
-from typing import List
+import datetime
+from typing import List, Optional
 
 from pydantic import BaseModel, validator
 
@@ -84,6 +85,17 @@ class Invite(BaseModel):
     team: PlayerlessTeam
     inviter: TeamlessUser
     invited: TeamlessUser
+
+    class Config:
+        orm_mode = True
+
+
+class Lobby(BaseModel):
+    id: int
+    lobby_name: str
+    referee: Optional[User]
+    date: datetime.datetime
+    teams: List[Team]
 
     class Config:
         orm_mode = True

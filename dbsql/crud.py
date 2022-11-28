@@ -1,8 +1,10 @@
+import datetime
 from typing import List, Optional
 
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+import pytz
 
 from . import models, schemas
 
@@ -13,6 +15,10 @@ def get_user(db: Session, user_hash: str) -> models.User:
 
 def get_user_by_osu_id(db: Session, osu_id: int) -> models.User:
     return db.query(models.User).filter(models.User.osu_id == osu_id).first()
+
+
+def get_user_by_osu_username(db: Session, osu_username: str) -> models.User:
+    return db.query(models.User).filter(models.User.osu_username == osu_username).first()
 
 
 def get_user_by_discord_id(db: Session, discord_id: str) -> models.User:
@@ -29,6 +35,35 @@ def get_user_invites(db: Session, user_hash: str) -> List[models.Invite]:
 
 def get_team_invites(db: Session, team_hash: str) -> List[models.Invite]:
     return db.query(models.Invite).filter(models.Invite.team_hash == team_hash).all()
+
+
+def get_lobbies(db: Session) -> List[models.QualifierLobby]:
+    return db.query(models.QualifierLobby).order_by(models.QualifierLobby.date).all()
+
+
+def get_lobby_player_count(db: Session, lobby_id: int):
+    return db.query(models.Team).filter(models.Team.lobby_id == lobby_id).count()
+
+
+def get_teams(db: Session, skip: int = 0, limit: int = 100) -> List[models.Team]:
+    return db.query(models.Team).offset(skip).limit(limit).all()
+
+
+def get_team(db: Session, team_hash: str) -> models.Team:
+    return db.query(models.Team).filter(models.Team.team_hash == team_hash).first()
+
+
+def count_teams(db: Session) -> int:
+    return db.query(models.Team).count()
+
+
+def get_invite(db: Session, team_hash: str, user_hash: str) -> models.Invite:
+    return db.query(models.Invite).filter(
+        models.Invite.team_hash == team_hash, models.Invite.invited_user_hash == user_hash).first()
+
+
+def get_lobby(db: Session, lobby_id: int) -> models.QualifierLobby:
+    return db.query(models.QualifierLobby).filter(models.QualifierLobby.id == lobby_id).first()
 
 
 def create_osu_user(db: Session, user: schemas.OsuUserCreate) -> models.User:
@@ -84,23 +119,6 @@ def downgrade_from_discord_user(db: Session, user_hash: str) -> models.User:
     return db_user
 
 
-def get_teams(db: Session, skip: int = 0, limit: int = 100) -> List[models.Team]:
-    return db.query(models.Team).offset(skip).limit(limit).all()
-
-
-def get_team(db: Session, team_hash: str) -> models.Team:
-    return db.query(models.Team).filter(models.Team.team_hash == team_hash).first()
-
-
-def count_teams(db: Session) -> int:
-    return db.query(models.Team).count()
-
-
-def get_invite(db: Session, team_hash: str, user_hash: str) -> models.Invite:
-    return db.query(models.Invite).filter(
-        models.Invite.team_hash == team_hash, models.Invite.invited_user_hash == user_hash).first()
-
-
 def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash: str) -> Optional[models.Team]:
     db_user = get_user(db=db, user_hash=user_hash)
     if db_user.team_hash:
@@ -117,7 +135,7 @@ def create_team(db: Session, team: schemas.TeamCreate, user_hash: str, team_hash
     return db_team
 
 
-def add_to_team(db: Session, team_hash: str, user_hash: str):
+def add_player_to_team(db: Session, team_hash: str, user_hash: str):
     db_invite = get_invite(db=db, team_hash=team_hash, user_hash=user_hash)
     if not db_invite:
         raise HTTPException(400, "This invite is for someone else.")
@@ -170,6 +188,43 @@ def create_avatar(db: Session, user_hash: str, img_url: str):
     return db_team
 
 
+def add_team_to_lobby(db: Session, user_hash: str, lobby_id: int):
+    lobby_teams = get_lobby_player_count(db=db, lobby_id=lobby_id)
+    if lobby_teams == 6:
+        raise HTTPException(401, "Lobby is full!")
+
+    db_lobby = get_lobby(db=db, lobby_id=lobby_id)
+
+    time_now = datetime.datetime.utcnow()
+    time_now_utc = pytz.utc.localize(time_now)
+    timezone = pytz.timezone("Asia/Singapore")
+    time_now_in_singapore = timezone.normalize(time_now_utc)
+    lobby_date = timezone.localize(db_lobby.date)
+
+    if lobby_date < time_now_in_singapore:
+        raise HTTPException(401, "Lobby is closed.")
+
+    db_user = get_user(db=db, user_hash=user_hash)
+    db_team = get_team(db=db, team_hash=db_user.team_hash)
+    if db_team is None:
+        raise HTTPException(401, "You are not in a team.")
+    if len(db_team.players) < 2:
+        raise HTTPException(401, "Your team is incomplete.")
+    db_team.lobby_id = lobby_id
+    db.commit()
+    db.refresh(db_team)
+    return db_team
+
+
+def remove_team_from_lobby(db: Session, user_hash: str):
+    db_user = get_user(db=db, user_hash=user_hash)
+    db_team = get_team(db=db, team_hash=db_user.team_hash)
+    db_team.lobby_id = None
+    db.commit()
+    db.refresh(db_team)
+    return db_team
+
+
 def decline_invite(db: Session, user_hash: str, team_hash: str):
     db_invite = get_invite(db=db, user_hash=user_hash, team_hash=team_hash)
     if not db_invite:
@@ -210,3 +265,38 @@ def unban_user(db: Session, user_osu_id: int):
     user_to_be_unbanned.is_banned = False
     db.commit()
     return user_to_be_unbanned
+
+
+def create_lobby(db: Session, lobby_name: str, lobby_time: datetime.datetime, referee_osu_username: Optional[str] = None):
+    if referee_osu_username is not None:
+        referee_db_user = get_user_by_osu_username(db=db, osu_username=referee_osu_username)
+        referee_hash = referee_db_user.user_hash
+    else:
+        referee_hash = None
+    db_lobby = models.QualifierLobby(lobby_name=lobby_name, date=lobby_time,
+                                     referee_hash=referee_hash)
+    db.add(db_lobby)
+    db.commit()
+    db.refresh(db_lobby)
+
+    return db_lobby
+
+
+def add_referee_to_lobby(db: Session, lobby_id: int, referee_osu_username: str):
+    db_lobby = get_lobby(db=db, lobby_id=lobby_id)
+    db_referee = get_user_by_osu_username(db=db, osu_username=referee_osu_username)
+    db_lobby.referee_hash = db_referee.user_hash
+    db.commit()
+    db.refresh(db_lobby)
+
+    return db_lobby
+
+
+def remove_lobby(db: Session, lobby_id: int):
+    db_lobby = get_lobby(db=db, lobby_id=lobby_id)
+    if db_lobby is None:
+        raise HTTPException(401, "Selected lobby does not exist.")
+
+    db.delete(db_lobby)
+    db.commit()
+    return
