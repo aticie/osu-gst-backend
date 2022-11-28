@@ -111,6 +111,11 @@ def hash_with_random(string_to_be_hashed: str) -> str:
     return hashlib.md5(f"{string_to_be_hashed}+{hash_secret}".encode()).hexdigest()
 
 
+def sign_ups_open_period():
+    if datetime.datetime.now() > datetime.datetime.fromisoformat("2022-11-27T16:00:00"):
+        raise HTTPException(401, "Sign-ups are closed.")
+
+
 async def oauth2_authorization(code: str,
                                client_id: str,
                                client_secret: str,
@@ -144,7 +149,7 @@ async def get_me_data(access_token, me_endpoint):
     return me_result
 
 
-@app.get("/osu-identify", response_class=RedirectResponse)
+@app.get("/osu-identify", response_class=RedirectResponse, dependencies=[Depends(sign_ups_open_period)])
 async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResponse:
     access_token = await oauth2_authorization(code=code,
                                               client_id=os.getenv("OSU_CLIENT_ID"),
@@ -193,7 +198,7 @@ async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResp
     return redirect
 
 
-@app.get("/discord-identify", response_class=RedirectResponse)
+@app.get("/discord-identify", response_class=RedirectResponse, dependencies=[Depends(sign_ups_open_period)])
 async def discord_identify(code: str, db: Session = Depends(get_db),
                            user_hash: str | None = Cookie(default=None)):
     access_token = await oauth2_authorization(code=code,
