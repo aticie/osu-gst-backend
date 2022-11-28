@@ -200,8 +200,9 @@ def add_team_to_lobby(db: Session, user_hash: str, lobby_id: int):
     timezone = pytz.timezone("Asia/Singapore")
     time_now_in_singapore = timezone.normalize(time_now_utc)
     lobby_date = timezone.localize(db_lobby.date)
+    lobby_expire = lobby_date - datetime.timedelta(minutes=30)
 
-    if lobby_date < time_now_in_singapore:
+    if lobby_expire < time_now_in_singapore:
         raise HTTPException(401, "Lobby is closed.")
 
     db_user = get_user(db=db, user_hash=user_hash)
