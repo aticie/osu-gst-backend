@@ -149,7 +149,7 @@ async def get_me_data(access_token, me_endpoint):
     return me_result
 
 
-@app.get("/osu-identify", response_class=RedirectResponse, dependencies=[Depends(sign_ups_open_period)])
+@app.get("/osu-identify", response_class=RedirectResponse)
 async def osu_identify(code: str, db: Session = Depends(get_db)) -> RedirectResponse:
     access_token = await oauth2_authorization(code=code,
                                               client_id=os.getenv("OSU_CLIENT_ID"),
