@@ -190,7 +190,7 @@ def create_avatar(db: Session, user_hash: str, img_url: str):
 
 def add_team_to_lobby(db: Session, user_hash: str, lobby_id: int):
     lobby_teams = get_lobby_player_count(db=db, lobby_id=lobby_id)
-    if lobby_teams == 6:
+    if lobby_teams == 8:
         raise HTTPException(401, "Lobby is full!")
 
     db_lobby = get_lobby(db=db, lobby_id=lobby_id)
