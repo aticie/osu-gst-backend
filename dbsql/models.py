@@ -99,7 +99,7 @@ class PlayerScore(Base):
 
     index = Column(Integer, primary_key=True, index=True)
 
-    user_osuname = Column(String, ForeignKey("users.osu_username"))
+    username = Column(String, ForeignKey("users.osu_username"))
     user = relationship("User")
 
     map_id = Column(String, ForeignKey("mappools.id"))

@@ -394,6 +394,6 @@ async def get_team_scores(map_id: str, db: Session = Depends(get_db)):
 
 
 @app.get("/user/scores", response_model=List[schemas.PlayerMapScore])
-async def get_player_scores(map_id:str, db: Session = Depends(get_db)):
+async def get_player_scores(map_id: str, db: Session = Depends(get_db)):
     player_scores = crud.get_player_scores(db=db, map_id=map_id)
     return player_scores
