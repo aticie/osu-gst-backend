@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Float
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -60,3 +60,49 @@ class QualifierLobby(Base):
 
     date = Column(DateTime)
     teams = relationship("Team", back_populates="lobby")
+
+
+class Mappools(Base):
+    __tablename__ = "mappools"
+
+    _id = Column(Integer, primary_key=True)
+    id = Column("id", String, index=True)
+    mods = Column("mods", String)
+    title = Column("artist - title [difficulty]", String)
+    raw_title = Column("RAW artist - title [difficulty]", String)
+    sr = Column("sr", Float)
+    bpm = Column("bpm", Integer)
+    cs = Column("cs", Float)
+    ar = Column("ar", Float)
+    od = Column("od", Float)
+    mapset = Column("mapset", String)
+    set_id = Column("set id", Integer)
+    map_id = Column("map id", Integer)
+
+
+class TeamScore(Base):
+    __tablename__ = "team_scores"
+
+    index = Column(Integer, primary_key=True, index=True)
+
+    teamname = Column(String, ForeignKey("teams.title"))
+    team = relationship("Team")
+
+    map_id = Column(String, ForeignKey("mappools.id"))
+    map = relationship("Mappools")
+
+    score = Column(Integer, nullable=True)
+
+
+class PlayerScore(Base):
+    __tablename__ = "player_scores"
+
+    index = Column(Integer, primary_key=True, index=True)
+
+    user_osuname = Column(String, ForeignKey("users.osu_username"))
+    user = relationship("User")
+
+    map_id = Column(String, ForeignKey("mappools.id"))
+    map = relationship("Mappools")
+
+    score = Column(Integer, nullable=True)

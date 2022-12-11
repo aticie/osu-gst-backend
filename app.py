@@ -379,3 +379,21 @@ async def create_lobby(lobby_time: datetime.datetime, lobby_name: str,
 async def add_referee_to_lobby(referee_osu_username: str, lobby_id: int,
                                db: Session = Depends(get_db)):
     return crud.add_referee_to_lobby(db=db, referee_osu_username=referee_osu_username, lobby_id=lobby_id)
+
+
+@app.get("/mappool", response_model=List[schemas.Mappool])
+async def get_mappool(db: Session = Depends(get_db)):
+    maps = crud.get_mappool(db=db)
+    return maps
+
+
+@app.get("/team/scores", response_model=List[schemas.TeamMapScore])
+async def get_team_scores(map_id: str, db: Session = Depends(get_db)):
+    team_scores = crud.get_team_scores(db=db, map_id=map_id)
+    return team_scores
+
+
+@app.get("/user/scores", response_model=List[schemas.PlayerMapScore])
+async def get_player_scores(map_id:str, db: Session = Depends(get_db)):
+    player_scores = crud.get_player_scores(db=db, map_id=map_id)
+    return player_scores
