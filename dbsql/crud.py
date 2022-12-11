@@ -72,7 +72,7 @@ def get_mappool(db: Session) -> List[models.Mappools]:
 
 def get_team_scores(db: Session, map_id: str) -> List[models.TeamScore]:
     return db.query(models.TeamScore).filter(models.TeamScore.map_id == map_id,
-                                             models.PlayerScore.score.isnot(None)).order_by(
+                                             models.TeamScore.score.isnot(None)).order_by(
         models.TeamScore.score.desc()).all()
 
 
