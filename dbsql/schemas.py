@@ -131,6 +131,7 @@ class OverallPlayerScore(BaseModel):
 class OverallTeamScore(BaseModel):
     teamname: str
     score: Optional[float]
+    zscore: Optional[float]
 
     class Config:
         orm_mode = True

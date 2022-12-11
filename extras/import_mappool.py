@@ -40,6 +40,9 @@ def add_results():
                                      names=["teamname"] + map_columns)
         team_results.drop([33, 34, 35], inplace=True)
         team_results = refactor_df(team_results)
+        zscores = pd.read_excel(results_file, sheet_name="zscore", header=None, names=["teamname"] + map_columns)
+        zscores = refactor_df(zscores)
+        team_results["zscore"] = zscores["score"]
 
         team_results.to_sql("team_scores", con=engine, index=True, if_exists="replace")
 
@@ -52,12 +55,7 @@ def add_results():
         team_results.drop("index", axis=1, inplace=True)
         return team_results
 
-    def add_zscores():
-        zscores = pd.read_excel(results_file, sheet_name="zscore", header=None, names=["teamname"] + map_columns)
-        zscores = refactor_df(zscores)
-        zscores.to_sql("team_zscores", con=engine, index=True, if_exists="replace")
-
-    add_zscores()
+    add_team_results()
 
 
 if __name__ == '__main__':

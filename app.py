@@ -392,22 +392,10 @@ async def get_mappool_team_scores(mappool_type: str = "QF", db: Session = Depend
     maps = crud.get_team_scores_overall(db=db, mappool_type=mappool_type)
     return maps
 
-
-@app.get("/mappool/team_zscores", response_model=List[schemas.OverallTeamScore])
-async def get_mappool_team_zscores(mappool_type: str = "QF", db: Session = Depends(get_db)):
-    maps = crud.get_team_zscores_overall(db=db, mappool_type=mappool_type)
-    return maps
-
-
 @app.get("/mappool/player_scores", response_model=List[schemas.OverallPlayerScore])
 async def get_mappool_player_scores(mappool_type: str = "QF", db: Session = Depends(get_db)):
     maps = crud.get_player_scores_overall(db=db, mappool_type=mappool_type)
     return maps
-
-
-@app.get("/team/zscores", response_model=List[schemas.TeamMapScore])
-async def get_team_zscores(map_id: str, db: Session = Depends(get_db)):
-    return crud.get_team_zscores(db=db, map_id=map_id)
 
 
 @app.get("/team/scores", response_model=List[schemas.TeamMapScore])
