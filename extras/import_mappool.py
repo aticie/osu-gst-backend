@@ -12,6 +12,15 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 def add_mappool():
     mappools = pd.read_excel("GSTLIVE 2022 MAPPOOLS 1.xlsx")
     mappools.drop("Unnamed: 0", axis=1, inplace=True)
+    mappools["youtube"] = ["https://www.youtube.com/watch?v=N1-t-RcSwaA",
+                           "https://www.youtube.com/watch?v=3ORdWKEoyaY",
+                           "https://www.youtube.com/watch?v=M7QDL5O8vno",
+                           "https://www.youtube.com/watch?v=ry3wmRxhXkc",
+                           "https://www.youtube.com/watch?v=y4IsBEYdt7o",
+                           "https://www.youtube.com/watch?v=PsoFJkTtolU",
+                           "https://www.youtube.com/watch?v=VI6w78iPkIk",
+                           "https://www.youtube.com/watch?v=LWvwMJ1mwls",
+                           "https://www.youtube.com/watch?v=7QDu4UMTH7w"]
     mappools.to_sql("mappools", con=engine, index=True, index_label="_id", if_exists="replace")
 
 
@@ -43,4 +52,4 @@ def add_results():
 
 
 if __name__ == '__main__':
-    add_results()
+    add_mappool()
