@@ -71,11 +71,15 @@ def get_mappool(db: Session) -> List[models.Mappools]:
 
 
 def get_team_scores(db: Session, map_id: str) -> List[models.TeamScore]:
-    return db.query(models.TeamScore).filter(models.TeamScore.map_id == map_id).all()
+    return db.query(models.TeamScore).filter(models.TeamScore.map_id == map_id,
+                                             models.PlayerScore.score.isnot(None)).order_by(
+        models.TeamScore.score.desc()).all()
 
 
 def get_player_scores(db: Session, map_id: str) -> List[models.PlayerScore]:
-    return db.query(models.PlayerScore).filter(models.PlayerScore.map_id == map_id).all()
+    return db.query(models.PlayerScore).filter(models.PlayerScore.map_id == map_id,
+                                               models.PlayerScore.score.isnot(None)).order_by(
+        models.PlayerScore.score.desc()).all()
 
 
 def create_osu_user(db: Session, user: schemas.OsuUserCreate) -> models.User:
