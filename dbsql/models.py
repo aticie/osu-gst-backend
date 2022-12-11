@@ -79,6 +79,7 @@ class Mappools(Base):
     set_id = Column("set id", Integer)
     map_id = Column("map id", Integer)
     youtube = Column("youtube", String)
+    type = Column("type", String)
 
 
 class TeamScore(Base):
@@ -102,6 +103,20 @@ class PlayerScore(Base):
 
     username = Column(String, ForeignKey("users.osu_username"))
     user = relationship("User")
+
+    map_id = Column(String, ForeignKey("mappools.id"))
+    map = relationship("Mappools")
+
+    score = Column(Integer, nullable=True)
+
+
+class TeamZScore(Base):
+    __tablename__ = "team_zscores"
+
+    index = Column(Integer, primary_key=True, index=True)
+
+    teamname = Column(String, ForeignKey("teams.title"))
+    team = relationship("Team")
 
     map_id = Column(String, ForeignKey("mappools.id"))
     map = relationship("Mappools")

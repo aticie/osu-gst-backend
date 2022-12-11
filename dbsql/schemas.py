@@ -120,19 +120,25 @@ class Mappool(BaseModel):
         orm_mode = True
 
 
-class TeamMapScore(BaseModel):
-    teamname: str
-    map_id: str
-    score: Optional[float]
-
-    class Config:
-        orm_mode = True
-
-
-class PlayerMapScore(BaseModel):
+class OverallPlayerScore(BaseModel):
     username: str
-    map_id: str
     score: Optional[float]
 
     class Config:
         orm_mode = True
+
+
+class OverallTeamScore(BaseModel):
+    teamname: str
+    score: Optional[float]
+
+    class Config:
+        orm_mode = True
+
+
+class TeamMapScore(OverallTeamScore):
+    map_id: str
+
+
+class PlayerMapScore(OverallPlayerScore):
+    map_id: str

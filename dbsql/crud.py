@@ -66,8 +66,8 @@ def get_lobby(db: Session, lobby_id: int) -> models.QualifierLobby:
     return db.query(models.QualifierLobby).filter(models.QualifierLobby.id == lobby_id).first()
 
 
-def get_mappool(db: Session) -> List[models.Mappools]:
-    return db.query(models.Mappools).all()
+def get_mappool(db: Session, mappool_type: str) -> List[models.Mappools]:
+    return db.query(models.Mappools).filter(models.Mappools.type == mappool_type.casefold()).all()
 
 
 def get_team_scores(db: Session, map_id: str) -> List[models.TeamScore]:
@@ -76,10 +76,40 @@ def get_team_scores(db: Session, map_id: str) -> List[models.TeamScore]:
         models.TeamScore.score.desc()).all()
 
 
+def get_team_zscores(db: Session, map_id: str) -> List[models.TeamScore]:
+    return db.query(models.TeamZScore).filter(models.TeamZScore.map_id == map_id,
+                                              models.TeamZScore.score.isnot(None)).order_by(
+        models.TeamZScore.score.desc()).all()
+
+
 def get_player_scores(db: Session, map_id: str) -> List[models.PlayerScore]:
     return db.query(models.PlayerScore).filter(models.PlayerScore.map_id == map_id,
                                                models.PlayerScore.score.isnot(None)).order_by(
         models.PlayerScore.score.desc()).all()
+
+
+def get_team_scores_overall(db: Session, mappool_type: str) -> List[models.TeamScore]:
+    mappool = get_mappool(db=db, mappool_type=mappool_type)
+    map_ids = [map.id for map in mappool]
+    return db.query(models.TeamScore.teamname, func.sum(models.TeamScore.score).label("score")).filter(
+        models.TeamScore.map_id.in_(map_ids), models.TeamScore.score.isnot(None)).group_by(
+        models.TeamScore.teamname).order_by(func.sum(models.TeamScore.score).desc()).all()
+
+
+def get_team_zscores_overall(db: Session, mappool_type: str) -> List[models.TeamScore]:
+    mappool = get_mappool(db=db, mappool_type=mappool_type)
+    map_ids = [map.id for map in mappool]
+    return db.query(models.TeamZScore.teamname, func.sum(models.TeamZScore.score).label("score")).filter(
+        models.TeamZScore.map_id.in_(map_ids), models.TeamZScore.score.isnot(None)).group_by(
+        models.TeamZScore.teamname).order_by(func.sum(models.TeamZScore.score).desc()).all()
+
+
+def get_player_scores_overall(db: Session, mappool_type: str) -> List[models.TeamScore]:
+    mappool = get_mappool(db=db, mappool_type=mappool_type)
+    map_ids = [map.id for map in mappool]
+    return db.query(models.PlayerScore.username, func.sum(models.PlayerScore.score).label("score")).filter(
+        models.PlayerScore.map_id.in_(map_ids), models.PlayerScore.score.isnot(None)).group_by(
+        models.PlayerScore.username).order_by(func.sum(models.PlayerScore.score).desc()).all()
 
 
 def create_osu_user(db: Session, user: schemas.OsuUserCreate) -> models.User:

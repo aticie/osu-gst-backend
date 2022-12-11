@@ -382,18 +382,39 @@ async def add_referee_to_lobby(referee_osu_username: str, lobby_id: int,
 
 
 @app.get("/mappool", response_model=List[schemas.Mappool])
-async def get_mappool(db: Session = Depends(get_db)):
-    maps = crud.get_mappool(db=db)
+async def get_mappool(mappool_type: str = "QF", db: Session = Depends(get_db)):
+    maps = crud.get_mappool(db=db, mappool_type=mappool_type)
     return maps
+
+
+@app.get("/mappool/team_scores", response_model=List[schemas.OverallTeamScore])
+async def get_mappool_team_scores(mappool_type: str = "QF", db: Session = Depends(get_db)):
+    maps = crud.get_team_scores_overall(db=db, mappool_type=mappool_type)
+    return maps
+
+
+@app.get("/mappool/team_zscores", response_model=List[schemas.OverallTeamScore])
+async def get_mappool_team_zscores(mappool_type: str = "QF", db: Session = Depends(get_db)):
+    maps = crud.get_team_zscores_overall(db=db, mappool_type=mappool_type)
+    return maps
+
+
+@app.get("/mappool/player_scores", response_model=List[schemas.OverallPlayerScore])
+async def get_mappool_player_scores(mappool_type: str = "QF", db: Session = Depends(get_db)):
+    maps = crud.get_player_scores_overall(db=db, mappool_type=mappool_type)
+    return maps
+
+
+@app.get("/team/zscores", response_model=List[schemas.TeamMapScore])
+async def get_team_zscores(map_id: str, db: Session = Depends(get_db)):
+    return crud.get_team_zscores(db=db, map_id=map_id)
 
 
 @app.get("/team/scores", response_model=List[schemas.TeamMapScore])
 async def get_team_scores(map_id: str, db: Session = Depends(get_db)):
-    team_scores = crud.get_team_scores(db=db, map_id=map_id)
-    return team_scores
+    return crud.get_team_scores(db=db, map_id=map_id)
 
 
 @app.get("/user/scores", response_model=List[schemas.PlayerMapScore])
 async def get_player_scores(map_id: str, db: Session = Depends(get_db)):
-    player_scores = crud.get_player_scores(db=db, map_id=map_id)
-    return player_scores
+    return crud.get_player_scores(db=db, map_id=map_id)
