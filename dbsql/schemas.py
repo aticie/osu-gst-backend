@@ -114,7 +114,7 @@ class Mappool(BaseModel):
     mapset: str
     set_id: int
     map_id: int
-    youtube: str
+    youtube: Optional[str]
 
     class Config:
         orm_mode = True

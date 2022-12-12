@@ -78,7 +78,7 @@ class Mappools(Base):
     mapset = Column("mapset", String)
     set_id = Column("set id", Integer)
     map_id = Column("map id", Integer)
-    youtube = Column("youtube", String)
+    youtube = Column("youtube", String, nullable=True)
     type = Column("type", String)
 
 
