@@ -72,13 +72,13 @@ class Mappools(Base):
     raw_title = Column("RAW artist - title [difficulty]", String)
     sr = Column("sr", Float)
     bpm = Column("bpm", Integer)
-    cs = Column("cs", Float)
-    ar = Column("ar", Float)
-    od = Column("od", Float)
+    cs = Column("cs", String)
+    ar = Column("ar", String)
+    od = Column("od", String)
     mapset = Column("mapset", String)
     set_id = Column("set id", Integer)
     map_id = Column("map id", Integer)
-    youtube = Column("youtube", String)
+    youtube = Column("youtube", String, nullable=True)
     type = Column("type", String)
 
 
