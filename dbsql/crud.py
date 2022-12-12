@@ -1,10 +1,10 @@
 import datetime
 from typing import List, Optional
 
+import pytz
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-import pytz
 
 from . import models, schemas
 
@@ -64,6 +64,39 @@ def get_invite(db: Session, team_hash: str, user_hash: str) -> models.Invite:
 
 def get_lobby(db: Session, lobby_id: int) -> models.QualifierLobby:
     return db.query(models.QualifierLobby).filter(models.QualifierLobby.id == lobby_id).first()
+
+
+def get_mappool(db: Session, mappool_type: str) -> List[models.Mappools]:
+    return db.query(models.Mappools).filter(models.Mappools.type == mappool_type.casefold()).all()
+
+
+def get_team_scores(db: Session, map_id: str) -> List[models.TeamScore]:
+    return db.query(models.TeamScore).filter(models.TeamScore.map_id == map_id,
+                                             models.TeamScore.score.isnot(None)).order_by(
+        models.TeamScore.score.desc()).all()
+
+
+def get_player_scores(db: Session, map_id: str) -> List[models.PlayerScore]:
+    return db.query(models.PlayerScore).filter(models.PlayerScore.map_id == map_id,
+                                               models.PlayerScore.score.isnot(None)).order_by(
+        models.PlayerScore.score.desc()).all()
+
+
+def get_team_scores_overall(db: Session, mappool_type: str) -> List:
+    mappool = get_mappool(db=db, mappool_type=mappool_type)
+    map_ids = [map.id for map in mappool]
+    return db.query(models.TeamScore.teamname, func.sum(models.TeamScore.score).label("score"),
+                    func.sum(models.TeamScore.zscore).label("zscore")).filter(
+        models.TeamScore.map_id.in_(map_ids), models.TeamScore.zscore.isnot(None)).group_by(
+        models.TeamScore.teamname, models.TeamScore.teamname).order_by(func.sum(models.TeamScore.zscore).desc()).all()
+
+
+def get_player_scores_overall(db: Session, mappool_type: str) -> List[models.TeamScore]:
+    mappool = get_mappool(db=db, mappool_type=mappool_type)
+    map_ids = [map.id for map in mappool]
+    return db.query(models.PlayerScore.username, func.sum(models.PlayerScore.score).label("score")).filter(
+        models.PlayerScore.map_id.in_(map_ids), models.PlayerScore.score.isnot(None)).group_by(
+        models.PlayerScore.username).order_by(func.sum(models.PlayerScore.score).desc()).all()
 
 
 def create_osu_user(db: Session, user: schemas.OsuUserCreate) -> models.User:
@@ -268,7 +301,8 @@ def unban_user(db: Session, user_osu_id: int):
     return user_to_be_unbanned
 
 
-def create_lobby(db: Session, lobby_name: str, lobby_time: datetime.datetime, referee_osu_username: Optional[str] = None):
+def create_lobby(db: Session, lobby_name: str, lobby_time: datetime.datetime,
+                 referee_osu_username: Optional[str] = None):
     db_lobby = models.QualifierLobby(lobby_name=lobby_name, date=lobby_time,
                                      referee=referee_osu_username)
     db.add(db_lobby)

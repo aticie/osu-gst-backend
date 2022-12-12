@@ -99,3 +99,47 @@ class Lobby(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class Mappool(BaseModel):
+    id: str
+    mods: str
+    title: str
+    raw_title: str
+    sr: float
+    bpm: int
+    cs: float
+    ar: float
+    od: float
+    mapset: str
+    set_id: int
+    map_id: int
+    youtube: str
+
+    class Config:
+        orm_mode = True
+
+
+class OverallPlayerScore(BaseModel):
+    username: str
+    score: Optional[float]
+
+    class Config:
+        orm_mode = True
+
+
+class OverallTeamScore(BaseModel):
+    teamname: str
+    score: Optional[float]
+    zscore: Optional[float]
+
+    class Config:
+        orm_mode = True
+
+
+class TeamMapScore(OverallTeamScore):
+    map_id: str
+
+
+class PlayerMapScore(OverallPlayerScore):
+    map_id: str
