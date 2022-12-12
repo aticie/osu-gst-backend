@@ -72,6 +72,7 @@ class Mappools(Base):
     raw_title = Column("RAW artist - title [difficulty]", String)
     sr = Column("sr", Float)
     bpm = Column("bpm", Integer)
+    length = Column("length", DateTime(timezone=False))
     cs = Column("cs", String)
     ar = Column("ar", String)
     od = Column("od", String)

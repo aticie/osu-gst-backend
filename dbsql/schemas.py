@@ -108,6 +108,7 @@ class Mappool(BaseModel):
     raw_title: str
     sr: float
     bpm: int
+    length: datetime.time
     cs: float
     ar: float
     od: float
